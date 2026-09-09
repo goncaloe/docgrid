@@ -24,22 +24,33 @@ para o exterior, que é como as aplicações empresariais realmente vivem.
 ## Ciclo de vida do documento
 
 ```
-UPLOADED ──▶ PROCESSING ──▶ EXTRACTED ──▶ APPROVED ──▶ EXPORTED
-                  │              │            ▲
-                  │              ▼            │
-                  │        NEEDS_REVIEW ──────┤
-                  │              │            │
-                  ▼              ▼            │
-               FAILED        REJECTED         │
-                  │                           │
-                  └───── (reprocessar) ───────┘
+UPLOADED     → PROCESSING
+PROCESSING   → EXTRACTED · NEEDS_REVIEW · FAILED
+EXTRACTED    → APPROVED · NEEDS_REVIEW · REJECTED
+NEEDS_REVIEW → APPROVED · REJECTED
+FAILED       → PROCESSING                      (reprocessamento manual)
+APPROVED     → EXPORTED
+REJECTED     → (terminal)
+EXPORTED     → (terminal)
 ```
+
+Onze transições em sessenta e quatro pares possíveis. Quem as impõe é o enum
+`DocumentStatus`, e quem prova que estão todas certas é `DocumentStatusTest`, que percorre
+a matriz inteira. Esta lista e esse enum têm de dizer o mesmo — se divergirem, é aqui que
+se decide qual dos dois está errado.
+
+Um documento em `EXTRACTED` pode ser rejeitado diretamente: às vezes está tudo verde e o
+documento simplesmente não é uma fatura, e obrigá-lo a passar por `NEEDS_REVIEW` só para
+poder ser recusado seria burocracia sem valor.
+
+Reprocessar leva o documento a `PROCESSING` e não a `UPLOADED`: o registo já existe e a
+chave do S3 não muda.
 
 | Estado | Significado | Como se sai dele |
 |---|---|---|
 | `UPLOADED` | Ficheiro no S3, registo criado, ainda não processado | Worker consome a mensagem |
 | `PROCESSING` | Extração em curso | Extração termina ou falha |
-| `EXTRACTED` | Extraído e validado sem problemas. Sugestão pronta | Humano aprova |
+| `EXTRACTED` | Extraído e validado sem problemas. Sugestão pronta | Humano aprova, manda rever ou rejeita |
 | `NEEDS_REVIEW` | Extraído mas algo não bate certo. Motivo registado | Humano corrige e aprova, ou rejeita |
 | `FAILED` | Erro técnico (ficheiro corrompido, serviço indisponível) | Reprocessamento manual |
 | `APPROVED` | Dados confirmados por um humano. Imutável a partir daqui | Entra na exportação |
