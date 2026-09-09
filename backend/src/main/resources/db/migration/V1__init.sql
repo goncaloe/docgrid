@@ -1,0 +1,3 @@
+-- Migração inicial, deliberadamente vazia.
+-- Existe para fixar a cadeia do Flyway e provar que ela corre de ponta a ponta:
+-- o esquema real chega na etapa 01, com o modelo de domínio.

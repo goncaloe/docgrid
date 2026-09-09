@@ -1,0 +1,33 @@
+# Configuração comum a todos os perfis. Nada aqui é específico de um ambiente
+# e nada aqui é segredo: credenciais chegam sempre por variável de ambiente.
+spring:
+  application:
+    name: docgrid
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      # Sem autenticação, o corpo é apenas {"status":"UP"}. Detalhes de
+      # infraestrutura não se expõem a quem não está autenticado.
+      # As probes de liveness e readiness chegam na etapa 11, com o ECS.
+      show-details: when-authorized
+
+logging:
+  level:
+    com.docgrid: INFO

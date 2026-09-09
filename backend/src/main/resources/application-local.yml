@@ -1,0 +1,12 @@
+# Desenvolvimento local contra o docker compose deste repositório.
+# Os valores por omissão correspondem aos containers efémeros do `docker-compose.yml`;
+# não são credenciais de nada que exista fora da máquina de quem desenvolve.
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:docgrid}
+    username: ${POSTGRES_USER:docgrid}
+    password: ${POSTGRES_PASSWORD:docgrid}
+
+logging:
+  level:
+    com.docgrid: DEBUG

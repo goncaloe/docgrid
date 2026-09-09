@@ -1,0 +1,9 @@
+# Execução em AWS. Sem valores por omissão de propósito: se uma variável faltar,
+# a aplicação não arranca, em vez de arrancar apontada ao sítio errado.
+spring:
+  datasource:
+    url: ${DOCGRID_DB_URL}
+    username: ${DOCGRID_DB_USER}
+    password: ${DOCGRID_DB_PASSWORD}
+  jpa:
+    show-sql: false

@@ -1,0 +1,11 @@
+# Testes de integração. A ligação à base de dados vem do Testcontainers através
+# de @ServiceConnection — não se configura aqui, e nunca aponta para um Postgres
+# da máquina de quem corre os testes.
+spring:
+  flyway:
+    clean-disabled: true
+
+logging:
+  level:
+    org.testcontainers: INFO
+    com.docgrid: DEBUG
