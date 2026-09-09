@@ -47,6 +47,11 @@ menos um teste de autorização (utilizador sem permissão recebe 403).
 Nunca uses mocks para o Postgres ou para o S3 — usa Testcontainers e LocalStack.
 Testes que passam contra um mock e falham contra a realidade não valem nada.
 
+Um teste de persistência anota-se com `@RepositoryTest`
+(`backend/src/test/java/com/docgrid/support/`), que já traz o container partilhado e o
+`replace = NONE` sem o qual o Spring troca o Postgres por uma base embutida — e o teste
+passa a provar outra coisa, sem se queixar.
+
 ## Commits
 
 Conventional Commits, em português. A mensagem de commit é explicação, e as explicações
