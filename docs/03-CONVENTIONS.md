@@ -8,6 +8,7 @@ Organizado por funcionalidade, não por camada técnica. Nada de `controllers/`,
 ```
 com.docgrid
 ├── document/        # upload, estados, consulta
+├── storage/         # abstração do armazenamento de ficheiros (S3 / LocalStack)
 ├── extraction/      # interface + Textract + stub
 ├── validation/      # motor de regras
 ├── supplier/
