@@ -1,0 +1,16 @@
+# Normaliza as pontas de linha independentemente do sistema de quem clona.
+# Sem isto, o autocrlf do Windows converte os scripts de shell para CRLF e eles
+# deixam de correr dentro dos containers Linux ("bad interpreter: ...^M").
+* text=auto eol=lf
+
+*.sh    text eol=lf
+mvnw    text eol=lf
+
+# Estes só correm em Windows e querem mesmo CRLF.
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+*.jar   binary
+*.png   binary
+*.jpg   binary
+*.pdf   binary
