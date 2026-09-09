@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,18 +81,26 @@ public class DocumentUploadService {
                 contentType,
                 keyPrefix(organizationId),
                 extension);
-        documents.save(document);
-        events.save(DocumentEvent.created(document.getId(), Actor.user(submittedBy)));
 
-        PresignedUrl url = storage.createUploadUrl(document.getStorageKey(), contentType, urlTtl);
-        log.info("Documento {} registado em UPLOADED, chave {}", document.getId(), document.getStorageKey());
-        return new UploadUrlResponse(
-                document.getId(),
-                document.getStorageKey(),
-                url.url(),
-                url.httpMethod(),
-                url.requiredHeaders(),
-                url.expiresAt());
+        // O id do documento é o fio que liga os logs desta chamada aos do worker
+        // que mais tarde processa o mesmo documento — ver application.yml.
+        MDC.put("documentId", document.getId().toString());
+        try {
+            documents.save(document);
+            events.save(DocumentEvent.created(document.getId(), Actor.user(submittedBy)));
+
+            PresignedUrl url = storage.createUploadUrl(document.getStorageKey(), contentType, urlTtl);
+            log.info("Documento {} registado em UPLOADED, chave {}", document.getId(), document.getStorageKey());
+            return new UploadUrlResponse(
+                    document.getId(),
+                    document.getStorageKey(),
+                    url.url(),
+                    url.httpMethod(),
+                    url.requiredHeaders(),
+                    url.expiresAt());
+        } finally {
+            MDC.remove("documentId");
+        }
     }
 
     /**
@@ -101,9 +110,16 @@ public class DocumentUploadService {
      */
     @Transactional(readOnly = true)
     public FileUrlResponse fileUrl(UUID documentId) {
-        Document document = documents.findById(documentId).orElseThrow(() -> new DocumentNotFoundException(documentId));
-        PresignedUrl url = storage.createDownloadUrl(document.getStorageKey(), document.getOriginalFilename(), urlTtl);
-        return new FileUrlResponse(url.url(), url.expiresAt());
+        MDC.put("documentId", documentId.toString());
+        try {
+            Document document =
+                    documents.findById(documentId).orElseThrow(() -> new DocumentNotFoundException(documentId));
+            PresignedUrl url =
+                    storage.createDownloadUrl(document.getStorageKey(), document.getOriginalFilename(), urlTtl);
+            return new FileUrlResponse(url.url(), url.expiresAt());
+        } finally {
+            MDC.remove("documentId");
+        }
     }
 
     private String validate(UploadUrlRequest request) {

@@ -31,6 +31,10 @@ services:
       DOCGRID_BUCKET: ${DOCGRID_BUCKET:-docgrid-documents}
       DOCGRID_QUEUE: ${DOCGRID_QUEUE:-docgrid-document-processing}
       DOCGRID_DLQ: ${DOCGRID_DLQ:-docgrid-document-processing-dlq}
+      # URLs de fila como http://host:4566/000000000000/nome — previsíveis e
+      # acessíveis a partir do host, sem depender da resolução de
+      # localhost.localstack.cloud. Os testes usam a mesma estratégia.
+      SQS_ENDPOINT_STRATEGY: path
       # Por omissão o LocalStack não valida a assinatura nem a expiração dos URLs
       # pré-assinados, e serve qualquer objeto sem autenticação. Com isto a `0`,
       # um URL expirado dá 403 e o bucket deixa de ser público — como em AWS.

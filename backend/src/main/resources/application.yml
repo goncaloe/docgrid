@@ -5,6 +5,11 @@ spring:
     name: docgrid
   profiles:
     default: local
+    group:
+      # Em local, um só processo corre a API e o worker da fila. Em AWS são
+      # serviços separados: `aws` sozinho para a API, `aws,worker` para o worker.
+      # Ver docs/adr/0008-escolha-de-sqs-e-desenho-do-worker.md.
+      local: worker
   jpa:
     open-in-view: false
     hibernate:
@@ -22,6 +27,19 @@ server:
   port: ${SERVER_PORT:8080}
 
 docgrid:
+  queue:
+    name: ${DOCGRID_QUEUE:docgrid-document-processing}
+    dlq-name: ${DOCGRID_DLQ:docgrid-document-processing-dlq}
+    region: ${AWS_REGION:eu-west-1}
+    # Vazio ⇒ AWS real. O perfil `local` aponta isto ao LocalStack; os testes, ao container.
+    endpoint: ${DOCGRID_SQS_ENDPOINT:}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    # Entregas antes de a mensagem desistir. Tem de bater certo com o maxReceiveCount da
+    # política de redrive que a infraestrutura cria na fila — ver ADR 0008.
+    max-receive-count: 3
+    # Long polling: uma espera vazia é barata, um ciclo curto é puro custo.
+    wait-time: 10s
   storage:
     bucket: ${DOCGRID_BUCKET:docgrid-documents}
     region: ${AWS_REGION:eu-west-1}
@@ -56,3 +74,9 @@ management:
 logging:
   level:
     com.docgrid: INFO
+  pattern:
+    # Um id de correlação que atravessa a API e o worker: o documento. Quem o põe
+    # no MDC é o serviço de upload (API) e o DocumentProcessor (worker); `msg` é o
+    # id da mensagem SQS, só do lado do worker. A etapa 10 troca isto por logs
+    # estruturados a sério.
+    level: "%5p [doc=%X{documentId:-} msg=%X{messageId:-}]"

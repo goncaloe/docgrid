@@ -9,6 +9,14 @@ spring:
     show-sql: false
 
 docgrid:
+  queue:
+    name: ${DOCGRID_QUEUE}
+    dlq-name: ${DOCGRID_DLQ}
+    region: ${AWS_REGION}
+    # Sem endpoint nem credenciais fixas: o SQS real e a cadeia de credenciais do ECS.
+    endpoint: ""
+    access-key: ""
+    secret-key: ""
   storage:
     bucket: ${DOCGRID_BUCKET}
     region: ${AWS_REGION}

@@ -74,6 +74,12 @@
       <artifactId>s3</artifactId>
     </dependency>
 
+    <!-- A fila de processamento e a sua dead-letter queue: SQS em AWS, LocalStack no resto. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sqs</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
