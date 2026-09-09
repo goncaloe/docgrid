@@ -2,6 +2,7 @@ package com.docgrid.auth;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 /**
  * Dá aos testes de fluxo completo uma organização e um utilizador a quem atribuir os
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 public class DemoIdentityConfiguration {
 
     @Bean
+    @Primary
     DevBootstrap demoIdentity(OrganizationRepository organizations, UserRepository users) {
         return new DevBootstrap(organizations, users);
     }
