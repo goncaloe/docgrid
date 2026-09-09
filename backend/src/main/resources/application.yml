@@ -25,6 +25,15 @@ docgrid:
     endpoint: ${DOCGRID_S3_ENDPOINT:}
     access-key: ${AWS_ACCESS_KEY_ID:}
     secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  upload:
+    # Validade dos URLs pré-assinados: curta, é só o tempo de o browser fazer o upload.
+    url-ttl: 5m
+    max-file-size: 10MB
+    # Content-Type aceite → extensão canónica do ficheiro.
+    allowed-types:
+      application/pdf: pdf
+      image/jpeg: jpg
+      image/png: png
 
 management:
   endpoints:

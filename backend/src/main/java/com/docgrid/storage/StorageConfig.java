@@ -3,7 +3,6 @@ package com.docgrid.storage;
 import java.net.URI;
 import java.time.Clock;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -30,7 +29,6 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
  * a aplicação o monta, sem duplicar a lógica.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(StorageProperties.class)
 class StorageConfig {
 
     private static final S3Configuration PATH_STYLE =

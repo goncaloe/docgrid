@@ -100,6 +100,16 @@ class DocumentEvent {
     }
 
     /**
+     * O documento foi registado e a autorização de upload emitida (etapa 02). Não é uma
+     * transição — o documento nasce em {@code UPLOADED} —, mas fica na linha do tempo
+     * como o primeiro evento da sua história.
+     */
+    static DocumentEvent created(UUID documentId, Actor actor) {
+        return new DocumentEvent(
+                documentId, DocumentEventType.CREATED, null, DocumentStatus.UPLOADED, actor, null, null);
+    }
+
+    /**
      * O valor anterior de um campo corrigido à mão, guardado no payload.
      *
      * <p>É isto que permite a {@code extracted_fields} ter um valor corrente por campo em

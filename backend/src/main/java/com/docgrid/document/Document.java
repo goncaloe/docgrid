@@ -96,6 +96,10 @@ class Document extends BaseEntity {
 
     protected Document() {}
 
+    /**
+     * Construtor de chave explícita. Usam-no os testes que precisam de fixar a chave do S3
+     * (unicidade, consulta por chave). O caminho de produção é {@link #forUpload}.
+     */
     Document(UUID organizationId, UUID submittedBy, String storageKey, String originalFilename, String contentType) {
         this.organizationId = Objects.requireNonNull(organizationId, "organizationId");
         this.submittedBy = Objects.requireNonNull(submittedBy, "submittedBy");
@@ -103,6 +107,29 @@ class Document extends BaseEntity {
         this.originalFilename = Objects.requireNonNull(originalFilename, "originalFilename");
         this.contentType = Objects.requireNonNull(contentType, "contentType");
         this.status = DocumentStatus.UPLOADED;
+    }
+
+    /**
+     * Um documento novo, no instante em que se emite a autorização de upload. A chave do
+     * S3 deriva do próprio id, que já existe: {@link com.docgrid.shared.BaseEntity} gera-o
+     * no construtor e não no {@code flush}. Daí ser uma fábrica e não um construtor — a
+     * chave não se conhece antes de o objeto existir.
+     */
+    static Document forUpload(
+            UUID organizationId,
+            UUID submittedBy,
+            String originalFilename,
+            String contentType,
+            String storageKeyPrefix,
+            String extension) {
+        Document document = new Document();
+        document.organizationId = Objects.requireNonNull(organizationId, "organizationId");
+        document.submittedBy = Objects.requireNonNull(submittedBy, "submittedBy");
+        document.originalFilename = Objects.requireNonNull(originalFilename, "originalFilename");
+        document.contentType = Objects.requireNonNull(contentType, "contentType");
+        document.storageKey = "%s/%s.%s".formatted(storageKeyPrefix, document.getId(), extension);
+        document.status = DocumentStatus.UPLOADED;
+        return document;
     }
 
     /**
