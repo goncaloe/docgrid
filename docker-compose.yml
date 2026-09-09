@@ -30,6 +30,7 @@ services:
       AWS_DEFAULT_REGION: ${AWS_REGION:-eu-west-1}
       DOCGRID_BUCKET: ${DOCGRID_BUCKET:-docgrid-documents}
       DOCGRID_QUEUE: ${DOCGRID_QUEUE:-docgrid-document-processing}
+      DOCGRID_DLQ: ${DOCGRID_DLQ:-docgrid-document-processing-dlq}
       # Por omissão o LocalStack não valida a assinatura nem a expiração dos URLs
       # pré-assinados, e serve qualquer objeto sem autenticação. Com isto a `0`,
       # um URL expirado dá 403 e o bucket deixa de ser público — como em AWS.
@@ -38,12 +39,15 @@ services:
       - "${LOCALSTACK_PORT:-4566}:4566"
     volumes:
       - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
-    # Saudável só quando o bucket e a fila existem: garante que `--wait` espera
+    # Saudável só quando o bucket, a fila e a DLQ existem: garante que `--wait` espera
     # pelo script de init, não apenas pelo arranque do LocalStack.
     healthcheck:
       test:
         - CMD-SHELL
-        - awslocal s3api head-bucket --bucket $${DOCGRID_BUCKET} && awslocal sqs get-queue-url --queue-name $${DOCGRID_QUEUE}
+        - >-
+          awslocal s3api head-bucket --bucket $${DOCGRID_BUCKET}
+          && awslocal sqs get-queue-url --queue-name $${DOCGRID_QUEUE}
+          && awslocal sqs get-queue-url --queue-name $${DOCGRID_DLQ}
       interval: 5s
       timeout: 10s
       retries: 24
