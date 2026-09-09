@@ -12,6 +12,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  mvc:
+    # Erros saem como application/problem+json (RFC 7807). O tratamento completo
+    # — tipos, títulos, formato uniforme — chega na etapa 06.
+    problemdetails:
+      enabled: true
 
 server:
   port: ${SERVER_PORT:8080}
@@ -29,11 +34,12 @@ docgrid:
     # Validade dos URLs pré-assinados: curta, é só o tempo de o browser fazer o upload.
     url-ttl: 5m
     max-file-size: 10MB
-    # Content-Type aceite → extensão canónica do ficheiro.
+    # Content-Type aceite → extensão canónica do ficheiro. As chaves vão entre
+    # aspas e parênteses retos: sem isso, o Spring remove a barra do MIME.
     allowed-types:
-      application/pdf: pdf
-      image/jpeg: jpg
-      image/png: png
+      "[application/pdf]": pdf
+      "[image/jpeg]": jpg
+      "[image/png]": png
 
 management:
   endpoints:
