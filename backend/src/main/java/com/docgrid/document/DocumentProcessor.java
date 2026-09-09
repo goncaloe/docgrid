@@ -66,6 +66,32 @@ public class DocumentProcessor {
     }
 
     /**
+     * Reabre um documento {@code FAILED} para uma nova tentativa — o reprocessamento
+     * manual do ciclo de vida, acionado a partir da DLQ. Passa o documento a
+     * {@code PROCESSING} e reabre o claim, para que a entrega seguinte da mensagem retome
+     * o trabalho em vez de o tratar como duplicado.
+     *
+     * <p>Só age sobre {@code FAILED}: um documento noutro estado ou não precisa de ajuda
+     * (já foi extraído, já foi rejeitado) ou já está a ser tratado.
+     *
+     * @return {@code true} se o documento foi reaberto; {@code false} se não existe ou
+     *     não estava {@code FAILED}
+     */
+    public boolean reopenForReprocessing(String storageKey) {
+        return Boolean.TRUE.equals(transactions.execute(status -> {
+            Document document = documents.findByStorageKey(storageKey).orElse(null);
+            if (document == null || document.getStatus() != DocumentStatus.FAILED) {
+                return false;
+            }
+            events.save(document.transitionTo(
+                    DocumentStatus.PROCESSING, Actor.system(), "Reprocessamento a partir da dead-letter queue"));
+            claims.findById(storageKey).ifPresent(ProcessingClaim::reopen);
+            log.info("Documento {} reaberto para reprocessamento", document.getId());
+            return true;
+        }));
+    }
+
+    /**
      * Processa a entrega de um evento {@code ObjectCreated} desta chave do S3.
      *
      * @param finalAttempt verdadeiro se esta é a última entrega antes da mensagem ir para

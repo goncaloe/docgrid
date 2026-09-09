@@ -53,6 +53,17 @@ class ProcessingClaim {
         this.completedAt = Instant.now();
     }
 
+    /**
+     * Reabre o claim para uma nova tentativa. Chama-o quem reprocessa um documento
+     * {@code FAILED} (reprocessamento manual a partir da DLQ): a próxima entrega da
+     * mensagem vê o claim incompleto e retoma o trabalho, em vez de o tratar como
+     * duplicado.
+     */
+    void reopen() {
+        this.completedAt = null;
+        this.claimedAt = Instant.now();
+    }
+
     boolean isCompleted() {
         return completedAt != null;
     }

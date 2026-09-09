@@ -135,6 +135,34 @@ class DocumentProcessorTest {
     }
 
     @Test
+    void reopensAFailedDocumentForReprocessing() {
+        UploadUrlResponse uploaded =
+                uploads.authorizeUpload(new UploadUrlRequest("fatura.pdf", "application/pdf", 64L));
+        processor.process(BUCKET, uploaded.storageKey(), true);
+        assertThat(documents.findById(uploaded.documentId()).orElseThrow().getStatus())
+                .isEqualTo(DocumentStatus.FAILED);
+
+        boolean reopened = processor.reopenForReprocessing(uploaded.storageKey());
+
+        assertThat(reopened).isTrue();
+        assertThat(documents.findById(uploaded.documentId()).orElseThrow().getStatus())
+                .isEqualTo(DocumentStatus.PROCESSING);
+        assertThat(claims.findById(uploaded.storageKey()))
+                .get()
+                .satisfies(claim -> assertThat(claim.isCompleted()).isFalse());
+    }
+
+    @Test
+    void doesNotReopenADocumentThatDidNotFail() {
+        UploadUrlResponse uploaded = registerAndStore("uma fatura qualquer".getBytes(UTF_8));
+        processor.process(BUCKET, uploaded.storageKey(), false);
+
+        assertThat(processor.reopenForReprocessing(uploaded.storageKey())).isFalse();
+        assertThat(documents.findById(uploaded.documentId()).orElseThrow().getStatus())
+                .isEqualTo(DocumentStatus.EXTRACTED);
+    }
+
+    @Test
     void ignoresAnEventFromAnUnexpectedBucket() {
         byte[] content = "fatura noutro bucket".getBytes(UTF_8);
         UploadUrlResponse uploaded = registerAndStore(content);
