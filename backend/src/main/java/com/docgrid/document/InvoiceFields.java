@@ -8,9 +8,9 @@ import java.time.LocalDate;
  *
  * <p>Existe para haver uma só assinatura a escrever a projeção em {@link Document}: sete
  * argumentos soltos convidam a trocar dois deles sem o compilador dar por isso. Quem o
- * constrói a partir dos campos extraídos é a etapa 04.
+ * constrói é o motor de extração ({@code com.docgrid.extraction}).
  */
-record InvoiceFields(
+public record InvoiceFields(
         String supplierTaxId,
         String invoiceNumber,
         LocalDate issueDate,
