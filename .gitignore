@@ -24,6 +24,9 @@ credentials
 aws.properties
 application-local.yml
 application-local.properties
+# ...exceto o perfil `local` do projeto: valores dos containers do compose,
+# sem segredo nenhum. A regra acima protege overrides pessoais de quem desenvolve.
+!backend/src/main/resources/application-local.yml
 
 # Java / Maven
 target/
