@@ -29,4 +29,13 @@ public interface StorageService {
 
     /** Se existe um objeto nesta chave. */
     boolean exists(String key);
+
+    /**
+     * O conteúdo do objeto nesta chave, para processamento (etapa 03: o worker lê-o para
+     * calcular o hash e alimentar a extração).
+     *
+     * @throws NoSuchObjectException se o objeto não existir — um facto permanente, não
+     *     uma lentidão eventual: o S3 é fortemente consistente desde 2020
+     */
+    StoredObject download(String key);
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -19,7 +20,9 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
  * O {@link StorageService} sobre o S3 da AWS (ou o LocalStack, que fala o mesmo protocolo).
  *
  * <p>Só o {@link S3Presigner} emite URLs; o {@link S3Client} serve para o
- * {@link #exists(String) headObject}. O ficheiro em si nunca passa por aqui.
+ * {@link #exists(String) headObject} e o {@link #download(String) getObject}. O ficheiro
+ * só passa por aqui para ser processado — o upload e a leitura pelo browser continuam a
+ * ser direto, por URL assinada.
  */
 @Service
 class S3StorageService implements StorageService {
@@ -71,6 +74,17 @@ class S3StorageService implements StorageService {
                 return false;
             }
             throw e;
+        }
+    }
+
+    @Override
+    public StoredObject download(String key) {
+        try {
+            return new StoredObject(s3.getObjectAsBytes(
+                            GetObjectRequest.builder().bucket(bucket).key(key).build())
+                    .asByteArray());
+        } catch (NoSuchKeyException e) {
+            throw new NoSuchObjectException(key);
         }
     }
 

@@ -21,8 +21,10 @@ import com.docgrid.auth.AuthFixtures;
 import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
+import com.docgrid.storage.NoSuchObjectException;
 import com.docgrid.storage.PresignedUrl;
 import com.docgrid.storage.StorageService;
+import com.docgrid.storage.StoredObject;
 import com.docgrid.support.RepositoryTest;
 
 /**
@@ -179,6 +181,11 @@ class DocumentUploadServiceTest {
         @Override
         public boolean exists(String key) {
             return false;
+        }
+
+        @Override
+        public StoredObject download(String key) {
+            throw new NoSuchObjectException(key);
         }
     }
 }

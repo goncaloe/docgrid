@@ -2,6 +2,7 @@ package com.docgrid.storage;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.net.URI;
@@ -109,6 +110,22 @@ class S3StorageServiceTest {
         s3.putObject(b -> b.bucket(BUCKET).key(key), RequestBody.fromString("x"));
 
         assertThat(storage.exists(key)).isTrue();
+    }
+
+    @Test
+    void downloadsTheObjectContent() {
+        String key = "org/a/2026/09/processar.pdf";
+        byte[] body = "fatura para o worker processar".getBytes(UTF_8);
+        s3.putObject(b -> b.bucket(BUCKET).key(key), RequestBody.fromBytes(body));
+
+        assertThat(storage.download(key).content()).isEqualTo(body);
+    }
+
+    @Test
+    void downloadOfAMissingObjectIsADistinctPermanentError() {
+        assertThatThrownBy(() -> storage.download("org/a/2026/09/nunca-subiu.pdf"))
+                .isInstanceOf(NoSuchObjectException.class)
+                .hasMessageContaining("nunca-subiu.pdf");
     }
 
     @Test
