@@ -8,8 +8,6 @@ GEMINI.md
 .codex/
 .gemini/
 .github/copilot-instructions.md
-/docs
-/stages
 
 # Segredos e configuração de ambiente
 # Nunca commitar credenciais: ver regra 4 em docs/03-CONVENTIONS.md
