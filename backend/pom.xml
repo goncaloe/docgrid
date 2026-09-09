@@ -20,7 +20,21 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spotless-maven-plugin.version>3.10.2</spotless-maven-plugin.version>
     <palantir-java-format.version>2.98.0</palantir-java-format.version>
+    <awssdk.version>2.54.13</awssdk.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- O Spring Boot não gere as versões do SDK da AWS v2: o BOM fá-lo. -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -54,6 +68,12 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- Armazenamento dos ficheiros: S3 em AWS, LocalStack em desenvolvimento. Inclui o S3Presigner. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -72,6 +92,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
