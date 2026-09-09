@@ -1,0 +1,50 @@
+# Infraestrutura local do DocGrid: Postgres e LocalStack.
+# A aplicação corre no host (`npm run up`), não aqui — ver docs/adr/0002.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: docgrid-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docgrid}
+      POSTGRES_USER: ${POSTGRES_USER:-docgrid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docgrid}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  localstack:
+    # Fixo na linha 4.x: as imagens mais recentes (tags 2026.xx) exigem
+    # LOCALSTACK_AUTH_TOKEN e saem com erro de licença. Esta corre offline,
+    # sem credenciais e sem custo, que é o requisito do projeto.
+    image: localstack/localstack:4.9.2
+    container_name: docgrid-localstack
+    environment:
+      SERVICES: s3,sqs
+      AWS_DEFAULT_REGION: ${AWS_REGION:-eu-west-1}
+      DOCGRID_BUCKET: ${DOCGRID_BUCKET:-docgrid-documents}
+      DOCGRID_QUEUE: ${DOCGRID_QUEUE:-docgrid-document-processing}
+    ports:
+      - "${LOCALSTACK_PORT:-4566}:4566"
+    volumes:
+      - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
+    # Saudável só quando o bucket e a fila existem: garante que `--wait` espera
+    # pelo script de init, não apenas pelo arranque do LocalStack.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - awslocal s3api head-bucket --bucket $${DOCGRID_BUCKET} && awslocal sqs get-queue-url --queue-name $${DOCGRID_QUEUE}
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 20s
+
+volumes:
+  pgdata:
+    name: docgrid-pgdata
