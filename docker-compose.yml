@@ -30,6 +30,10 @@ services:
       AWS_DEFAULT_REGION: ${AWS_REGION:-eu-west-1}
       DOCGRID_BUCKET: ${DOCGRID_BUCKET:-docgrid-documents}
       DOCGRID_QUEUE: ${DOCGRID_QUEUE:-docgrid-document-processing}
+      # Por omissão o LocalStack não valida a assinatura nem a expiração dos URLs
+      # pré-assinados, e serve qualquer objeto sem autenticação. Com isto a `0`,
+      # um URL expirado dá 403 e o bucket deixa de ser público — como em AWS.
+      S3_SKIP_SIGNATURE_VALIDATION: "0"
     ports:
       - "${LOCALSTACK_PORT:-4566}:4566"
     volumes:

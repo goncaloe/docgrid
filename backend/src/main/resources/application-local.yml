@@ -7,6 +7,14 @@ spring:
     username: ${POSTGRES_USER:docgrid}
     password: ${POSTGRES_PASSWORD:docgrid}
 
+docgrid:
+  storage:
+    # O LocalStack do docker compose. As credenciais são fictícias por exigência do
+    # próprio LocalStack — aceita qualquer valor.
+    endpoint: ${DOCGRID_S3_ENDPOINT:http://localhost:4566}
+    access-key: ${AWS_ACCESS_KEY_ID:test}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+
 logging:
   level:
     com.docgrid: DEBUG

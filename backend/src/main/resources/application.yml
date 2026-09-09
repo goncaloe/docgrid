@@ -16,6 +16,16 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+docgrid:
+  storage:
+    bucket: ${DOCGRID_BUCKET:docgrid-documents}
+    region: ${AWS_REGION:eu-west-1}
+    # Vazio ⇒ AWS real (endpoint da região, credenciais da cadeia por omissão).
+    # O perfil `local` aponta isto ao LocalStack; os testes, ao container.
+    endpoint: ${DOCGRID_S3_ENDPOINT:}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+
 management:
   endpoints:
     web:

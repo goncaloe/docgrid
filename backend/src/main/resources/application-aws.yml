@@ -7,3 +7,12 @@ spring:
     password: ${DOCGRID_DB_PASSWORD}
   jpa:
     show-sql: false
+
+docgrid:
+  storage:
+    bucket: ${DOCGRID_BUCKET}
+    region: ${AWS_REGION}
+    # Sem endpoint nem credenciais fixas: o S3 real e a cadeia de credenciais do ECS.
+    endpoint: ""
+    access-key: ""
+    secret-key: ""
