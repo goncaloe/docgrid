@@ -59,6 +59,20 @@ docgrid:
       "[image/jpeg]": jpg
       "[image/png]": png
 
+  extraction:
+    # A fixture que o stub devolve (perfil local/test). Trocar o caminho troca o caso
+    # simulado — fatura limpa, foto tremida, campo em falta — sem tocar em código.
+    stub-fixture: ${DOCGRID_STUB_FIXTURE:extraction/fixtures/clean-invoice.json}
+    textract:
+      region: ${AWS_REGION:eu-west-1}
+      # Vazio ⇒ AWS real. O cliente do Textract só existe no perfil aws; local e test
+      # usam o stub (o LocalStack não tem Textract).
+      endpoint: ${DOCGRID_TEXTRACT_ENDPOINT:}
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      # Uma análise que estoura isto falha como erro transitório e o SQS volta a tentar.
+      api-timeout: 60s
+
 management:
   endpoints:
     web:
