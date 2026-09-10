@@ -7,6 +7,7 @@ GEMINI.md
 .cursor/
 .codex/
 .gemini/
+.omp/
 .github/copilot-instructions.md
 
 # Segredos e configuração de ambiente
