@@ -234,13 +234,19 @@ public class DocumentProcessor {
         result.confidences().forEach((fieldName, confidence) -> {
             String text = asText(result.invoiceFields(), fieldName);
             if (text != null) {
-                ExtractedField.readByMachine(document, fieldName, text, confidence);
+                ExtractedField.readByMachine(
+                        document,
+                        fieldName,
+                        text,
+                        confidence,
+                        result.geometries().get(fieldName));
             }
         });
     }
 
     private static String asText(InvoiceFields fields, ExtractedFieldName fieldName) {
         return switch (fieldName) {
+            case SUPPLIER_NAME -> fields.supplierName();
             case SUPPLIER_TAX_ID -> fields.supplierTaxId();
             case INVOICE_NUMBER -> fields.invoiceNumber();
             case ISSUE_DATE ->

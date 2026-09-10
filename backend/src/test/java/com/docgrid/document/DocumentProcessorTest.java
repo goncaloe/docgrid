@@ -70,9 +70,19 @@ class DocumentProcessorTest {
         assertThat(document.getSizeBytes()).isEqualTo((long) content.length);
         assertThat(document.getFileHash()).isEqualTo(sha256Hex(content));
 
-        // A projeção de negócio e os campos com confiança (regra 6 do AGENTS.md).
+        // A projeção de negócio e os campos com confiança e geometria (regra 6 do AGENTS.md).
         assertThat(document.getSupplierTaxId()).isEqualTo("505123452");
-        assertThat(fields.findByDocumentId(uploaded.documentId())).hasSize(7);
+        assertThat(fields.findByDocumentId(uploaded.documentId())).hasSize(8);
+        assertThat(fields.findByDocumentId(uploaded.documentId()))
+                .as("cada campo lido pela máquina sabe onde foi lido e com que certeza")
+                .allSatisfy(field -> {
+                    assertThat(field.getConfidence()).isNotNull();
+                    assertThat(field.getPage()).isEqualTo(1);
+                    assertThat(field.getBoundingBox()).isNotNull();
+                });
+        assertThat(fields.findByDocumentIdAndFieldName(uploaded.documentId(), ExtractedFieldName.SUPPLIER_NAME))
+                .get()
+                .satisfies(field -> assertThat(field.getValueText()).isEqualTo("Cantina do Zé, Lda."));
         assertThat(fields.findByDocumentIdAndFieldName(uploaded.documentId(), ExtractedFieldName.SUPPLIER_TAX_ID))
                 .get()
                 .satisfies(field -> {
@@ -99,7 +109,7 @@ class DocumentProcessorTest {
 
         assertThat(first).isEqualTo(ProcessingOutcome.PROCESSED);
         assertThat(second).isEqualTo(ProcessingOutcome.DUPLICATE);
-        assertThat(fields.findByDocumentId(uploaded.documentId())).hasSize(7);
+        assertThat(fields.findByDocumentId(uploaded.documentId())).hasSize(8);
         assertThat(events.findByDocumentIdOrderByOccurredAtAscIdAsc(uploaded.documentId()))
                 .filteredOn(event -> event.getToStatus() == DocumentStatus.EXTRACTED)
                 .hasSize(1);

@@ -82,6 +82,7 @@ class DocumentRepositoryTest {
     void findsTheDuplicateInvoiceOfTheSameSupplier() {
         Document original = documentWith(DocumentStatus.APPROVED, "org/a/1.pdf");
         original.projectInvoiceFields(new InvoiceFields(
+                "Cantina do Marés",
                 "501442889",
                 "FT 2026/117",
                 LocalDate.of(2026, 8, 14),

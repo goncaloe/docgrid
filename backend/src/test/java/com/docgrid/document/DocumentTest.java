@@ -3,9 +3,12 @@ package com.docgrid.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+
+import com.docgrid.extraction.FieldGeometry;
 
 /**
  * O comportamento do agregado, sem base de dados nem contexto Spring: a validação da
@@ -15,6 +18,12 @@ class DocumentTest {
 
     private static final UUID ORGANIZATION = UUID.randomUUID();
     private static final UUID SUBMITTER = UUID.randomUUID();
+    private static final FieldGeometry GEOMETRY = new FieldGeometry(
+            1,
+            List.of(
+                    new FieldGeometry.Point(0.1, 0.1),
+                    new FieldGeometry.Point(0.4, 0.1),
+                    new FieldGeometry.Point(0.4, 0.2)));
 
     @Test
     void startsUploadedBecauseTheFileHasNotBeenProcessedYet() {
@@ -59,7 +68,7 @@ class DocumentTest {
         Document document = newDocument();
 
         ExtractedField supplier = ExtractedField.readByMachine(
-                document, ExtractedFieldName.SUPPLIER_TAX_ID, "501442889", new java.math.BigDecimal("0.940"));
+                document, ExtractedFieldName.SUPPLIER_TAX_ID, "501442889", new java.math.BigDecimal("0.940"), GEOMETRY);
         ExtractedField category = ExtractedField.writtenByHuman(document, ExtractedFieldName.CATEGORY, "Refeições");
 
         assertThat(document.getExtractedFields()).containsExactly(supplier, category);
@@ -76,7 +85,7 @@ class DocumentTest {
         Document document = newDocument();
 
         assertThatThrownBy(() -> ExtractedField.readByMachine(
-                        document, ExtractedFieldName.TOTAL_AMOUNT, "12.30", new java.math.BigDecimal("1.5")))
+                        document, ExtractedFieldName.TOTAL_AMOUNT, "12.30", new java.math.BigDecimal("1.5"), GEOMETRY))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("entre 0 e 1");
     }
