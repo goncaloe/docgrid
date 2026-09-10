@@ -1,0 +1,69 @@
+{
+  "ExpenseDocuments": [
+    {
+      "ExpenseIndex": 1,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "TOTAL", "Confidence": 90.0},
+          "ValueDetection": {
+            "Text": "132.00",
+            "Confidence": 89.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.15, "Height": 0.04, "Left": 0.60, "Top": 0.55},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.55}, {"X": 0.75, "Y": 0.55},
+                {"X": 0.75, "Y": 0.59}, {"X": 0.60, "Y": 0.59}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "TOTAL", "Confidence": 95.0},
+          "ValueDetection": {
+            "Text": "123.00",
+            "Confidence": 94.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.15, "Height": 0.04, "Left": 0.60, "Top": 0.60},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.60}, {"X": 0.75, "Y": 0.60},
+                {"X": 0.75, "Y": 0.64}, {"X": 0.60, "Y": 0.64}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_ID", "Confidence": 80.0},
+          "ValueDetection": {
+            "Text": "FT 2026/1",
+            "Confidence": 79.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.22, "Height": 0.03, "Left": 0.60, "Top": 0.10},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.10}, {"X": 0.82, "Y": 0.10},
+                {"X": 0.82, "Y": 0.13}, {"X": 0.60, "Y": 0.13}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_ID", "Confidence": 80.0},
+          "ValueDetection": {
+            "Text": "FT 2026/2",
+            "Confidence": 79.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.22, "Height": 0.03, "Left": 0.60, "Top": 0.30},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.30}, {"X": 0.82, "Y": 0.30},
+                {"X": 0.82, "Y": 0.33}, {"X": 0.60, "Y": 0.33}
+              ]
+            }
+          },
+          "PageNumber": 1
+        }
+      ]
+    }
+  ]
+}

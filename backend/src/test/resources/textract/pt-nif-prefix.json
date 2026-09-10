@@ -1,0 +1,39 @@
+{
+  "ExpenseDocuments": [
+    {
+      "ExpenseIndex": 1,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "VENDOR_TAX_ID", "Confidence": 97.0},
+          "ValueDetection": {
+            "Text": "PT 501442889",
+            "Confidence": 96.4,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.25, "Height": 0.03, "Left": 0.05, "Top": 0.10},
+              "Polygon": [
+                {"X": 0.05, "Y": 0.10}, {"X": 0.30, "Y": 0.10},
+                {"X": 0.30, "Y": 0.13}, {"X": 0.05, "Y": 0.13}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "VENDOR_TAX_ID", "Confidence": 97.0},
+          "ValueDetection": {
+            "Text": "PT501442889",
+            "Confidence": 96.4,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.25, "Height": 0.03, "Left": 0.05, "Top": 0.10},
+              "Polygon": [
+                {"X": 0.05, "Y": 0.10}, {"X": 0.30, "Y": 0.10},
+                {"X": 0.30, "Y": 0.13}, {"X": 0.05, "Y": 0.13}
+              ]
+            }
+          },
+          "PageNumber": 1
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.docgrid.extraction.DocumentExtractor;
 import com.docgrid.extraction.ExtractionResult;
+import com.docgrid.extraction.UnreadableDocumentException;
 import com.docgrid.storage.NoSuchObjectException;
 import com.docgrid.storage.StorageProperties;
 import com.docgrid.storage.StorageService;
@@ -139,6 +140,13 @@ public class DocumentProcessor {
             // ObjectCreated não vai passar a existir. Erro permanente, sem retry.
             log.warn("Documento {}: {}", claim.documentId(), e.getMessage());
             fail(claim.documentId(), "O objeto não existe no S3: " + storageKey);
+            return ProcessingOutcome.FAILED;
+        } catch (UnreadableDocumentException e) {
+            // Ilegível é permanente: repetir a chamada não torna a foto menos tremida.
+            // Falha logo, sem esperar pelas tentativas do SQS — quem tem de intervir é
+            // uma pessoa, na revisão, não um retry.
+            log.warn("Documento {}: {}", claim.documentId(), e.getMessage());
+            fail(claim.documentId(), "Documento ilegível: " + e.getMessage());
             return ProcessingOutcome.FAILED;
         } catch (InvalidStatusTransitionException e) {
             // Outra entrega concluiu o trabalho primeiro: a nossa escrita rolou toda

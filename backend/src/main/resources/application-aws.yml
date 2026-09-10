@@ -24,3 +24,10 @@ docgrid:
     endpoint: ""
     access-key: ""
     secret-key: ""
+  extraction:
+    textract:
+      region: ${AWS_REGION}
+      # Sem endpoint nem credenciais fixas: o Textract real e a cadeia de credenciais do ECS.
+      endpoint: ""
+      access-key: ""
+      secret-key: ""

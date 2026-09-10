@@ -1,0 +1,64 @@
+{
+  "ExpenseDocuments": [
+    {
+      "ExpenseIndex": 1,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_DATE", "Confidence": 95.0},
+          "ValueDetection": {
+            "Text": "15/09/2026",
+            "Confidence": 94.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.20, "Height": 0.03, "Left": 0.60, "Top": 0.14},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.14}, {"X": 0.80, "Y": 0.14},
+                {"X": 0.80, "Y": 0.17}, {"X": 0.60, "Y": 0.17}
+              ]
+            }
+          },
+          "PageNumber": 1
+        }
+      ]
+    },
+    {
+      "ExpenseIndex": 2,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_DATE", "Confidence": 96.0},
+          "ValueDetection": {
+            "Text": "15-09-2026",
+            "Confidence": 95.5,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.20, "Height": 0.03, "Left": 0.60, "Top": 0.14},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.14}, {"X": 0.80, "Y": 0.14},
+                {"X": 0.80, "Y": 0.17}, {"X": 0.60, "Y": 0.17}
+              ]
+            }
+          },
+          "PageNumber": 2
+        }
+      ]
+    },
+    {
+      "ExpenseIndex": 3,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_DATE", "Confidence": 93.0},
+          "ValueDetection": {
+            "Text": "15.09.2026",
+            "Confidence": 92.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.20, "Height": 0.03, "Left": 0.60, "Top": 0.14},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.14}, {"X": 0.80, "Y": 0.14},
+                {"X": 0.80, "Y": 0.17}, {"X": 0.60, "Y": 0.17}
+              ]
+            }
+          },
+          "PageNumber": 3
+        }
+      ]
+    }
+  ]
+}

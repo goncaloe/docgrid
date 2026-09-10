@@ -80,6 +80,12 @@
       <artifactId>sqs</artifactId>
     </dependency>
 
+    <!-- Análise de faturas e despesas: o Textract em AWS, só no perfil aws. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>textract</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

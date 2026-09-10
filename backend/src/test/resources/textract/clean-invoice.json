@@ -1,0 +1,129 @@
+{
+  "ExpenseDocuments": [
+    {
+      "ExpenseIndex": 1,
+      "SummaryFields": [
+        {
+          "Type": {"Text": "VENDOR_NAME", "Confidence": 94.5},
+          "ValueDetection": {
+            "Text": "Cantina do Zé, Lda.",
+            "Confidence": 93.8,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.42, "Height": 0.04, "Left": 0.05, "Top": 0.05},
+              "Polygon": [
+                {"X": 0.05, "Y": 0.05}, {"X": 0.47, "Y": 0.05},
+                {"X": 0.47, "Y": 0.09}, {"X": 0.05, "Y": 0.09}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "VENDOR_TAX_ID", "Confidence": 98.2},
+          "ValueDetection": {
+            "Text": "505123452",
+            "Confidence": 97.4,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.25, "Height": 0.03, "Left": 0.05, "Top": 0.10},
+              "Polygon": [
+                {"X": 0.05, "Y": 0.10}, {"X": 0.30, "Y": 0.10},
+                {"X": 0.30, "Y": 0.13}, {"X": 0.05, "Y": 0.13}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_ID", "Confidence": 96.1},
+          "ValueDetection": {
+            "Text": "FT 2026/123",
+            "Confidence": 95.0,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.22, "Height": 0.03, "Left": 0.60, "Top": 0.10},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.10}, {"X": 0.82, "Y": 0.10},
+                {"X": 0.82, "Y": 0.13}, {"X": 0.60, "Y": 0.13}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "INVOICE_RECEIPT_DATE", "Confidence": 97.9},
+          "ValueDetection": {
+            "Text": "2026-09-15",
+            "Confidence": 97.1,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.20, "Height": 0.03, "Left": 0.60, "Top": 0.14},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.14}, {"X": 0.80, "Y": 0.14},
+                {"X": 0.80, "Y": 0.17}, {"X": 0.60, "Y": 0.17}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "SUBTOTAL", "Confidence": 96.4},
+          "ValueDetection": {
+            "Text": "100.00",
+            "Confidence": 95.9,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.15, "Height": 0.03, "Left": 0.60, "Top": 0.45},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.45}, {"X": 0.75, "Y": 0.45},
+                {"X": 0.75, "Y": 0.48}, {"X": 0.60, "Y": 0.48}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "TAX", "Confidence": 95.2},
+          "ValueDetection": {
+            "Text": "23.00",
+            "Confidence": 94.3,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.13, "Height": 0.03, "Left": 0.60, "Top": 0.49},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.49}, {"X": 0.73, "Y": 0.49},
+                {"X": 0.73, "Y": 0.52}, {"X": 0.60, "Y": 0.52}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "TAX_PCT", "Confidence": 98.9},
+          "ValueDetection": {
+            "Text": "23",
+            "Confidence": 98.5,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.08, "Height": 0.03, "Left": 0.35, "Top": 0.49},
+              "Polygon": [
+                {"X": 0.35, "Y": 0.49}, {"X": 0.43, "Y": 0.49},
+                {"X": 0.43, "Y": 0.52}, {"X": 0.35, "Y": 0.52}
+              ]
+            }
+          },
+          "PageNumber": 1
+        },
+        {
+          "Type": {"Text": "TOTAL", "Confidence": 97.6},
+          "ValueDetection": {
+            "Text": "123.00",
+            "Confidence": 96.8,
+            "Geometry": {
+              "BoundingBox": {"Width": 0.15, "Height": 0.04, "Left": 0.60, "Top": 0.55},
+              "Polygon": [
+                {"X": 0.60, "Y": 0.55}, {"X": 0.75, "Y": 0.55},
+                {"X": 0.75, "Y": 0.59}, {"X": 0.60, "Y": 0.59}
+              ]
+            }
+          },
+          "PageNumber": 1
+        }
+      ]
+    }
+  ]
+}
