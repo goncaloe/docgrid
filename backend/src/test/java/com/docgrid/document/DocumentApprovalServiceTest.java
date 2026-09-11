@@ -167,6 +167,42 @@ class DocumentApprovalServiceTest {
         assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.APPROVED);
     }
 
+    @Test
+    void onlyAManagerOrAdminApprovesADocumentWithAHumanCorrectedAmount() {
+        UUID documentId = anExtractedDocumentWithAHumanCorrectedTotal();
+
+        assertThatThrownBy(() -> approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, null))
+                .as("o total foi corrigido à mão — mesmo abaixo do limite, só um gestor aprova")
+                .isInstanceOf(AccessDeniedException.class);
+
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.MANAGER, null);
+
+        assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.APPROVED);
+    }
+
+    /** Abaixo do limite, mas com o total corrigido à mão — pede sempre um gestor. */
+    private UUID anExtractedDocumentWithAHumanCorrectedTotal() {
+        Document document = new Document(
+                organizationId,
+                submitterId,
+                "org/%s/2026/09/%s.pdf".formatted(organizationId, UUID.randomUUID()),
+                "fatura.pdf",
+                "application/pdf");
+        document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null);
+        document.transitionTo(DocumentStatus.EXTRACTED, Actor.system(), null);
+        document.projectInvoiceFields(new InvoiceFields(
+                null,
+                SUPPLIER_TAX_ID,
+                "FT " + UUID.randomUUID(),
+                LocalDate.of(2026, 8, 20),
+                new BigDecimal("100.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("1.00")));
+        ExtractedField.writtenByHuman(document, ExtractedFieldName.TOTAL_AMOUNT, "1.00");
+        return documents.save(document).getId();
+    }
+
     /** Acima do limite de 1000.00 EUR semeado por {@code DemoIdentityConfiguration}. */
     private UUID anAboveThresholdDocument() {
         Document document = new Document(

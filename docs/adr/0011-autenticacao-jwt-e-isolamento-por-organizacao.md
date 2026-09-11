@@ -68,6 +68,13 @@ valor corrente da organização. `ApprovalThresholdRule` (etapa 05) continua a s
 informativa em `validation_results` — quem impõe a regra é o serviço de aprovação, não o
 motor de validação.
 
+**Correção pós-revisão de segurança:** comparar só o total corrente abria uma lacuna —
+`FINANCE` corrige `TOTAL_AMOUNT` (endpoint que já lhe é permitido) para um valor abaixo do
+limite e aprova a seguir sozinho, sem gestor nenhum a validar a correção. `approve` passou
+a exigir `MANAGER`/`ADMIN` também quando qualquer campo de montante
+(`NET_AMOUNT`/`VAT_AMOUNT`/`VAT_RATE`/`TOTAL_AMOUNT`) tem origem `HUMAN`, independentemente
+do valor corrente.
+
 ## Isolamento por organização — nota transversal
 
 Toda a consulta de escrita que toca num documento passa a filtrar por organização

@@ -1,5 +1,8 @@
 package com.docgrid.document;
 
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -17,7 +20,9 @@ import com.docgrid.supplier.SupplierApprovalRecorder;
  * <p>Uma despesa acima do limite de aprovação da organização só pode ser aprovada por
  * {@code MANAGER} ou {@code ADMIN} — é a "aprovação de gestor" do produto, decidida no
  * momento de aprovar e não como um estado próprio no ciclo de vida do documento (ver
- * {@code docs/adr/0011}).
+ * {@code docs/adr/0011}). O mesmo exige-se se algum campo de montante foi corrigido à
+ * mão: sem isso, um {@code FINANCE} sem autoridade para aprovar acima do limite corrigia
+ * o total para baixo dele e aprovava a seguir, sem gestor nenhum a validar a correção.
  */
 @Service
 public class DocumentApprovalService {
@@ -64,14 +69,36 @@ public class DocumentApprovalService {
         }
     }
 
+    private static final Set<ExtractedFieldName> AMOUNT_FIELDS = EnumSet.of(
+            ExtractedFieldName.NET_AMOUNT,
+            ExtractedFieldName.VAT_AMOUNT,
+            ExtractedFieldName.VAT_RATE,
+            ExtractedFieldName.TOTAL_AMOUNT);
+
     private void requireApprovalAuthority(Document document, UUID organizationId, UserRole actorRole) {
-        if (document.getTotalAmount() == null || actorRole == UserRole.MANAGER || actorRole == UserRole.ADMIN) {
+        if (actorRole == UserRole.MANAGER || actorRole == UserRole.ADMIN) {
             return;
         }
-        if (document.getTotalAmount().compareTo(approvalThresholds.approvalThresholdFor(organizationId)) > 0) {
+        if (hasHumanCorrectedAmount(document)) {
+            throw new AccessDeniedException(
+                    "Um montante deste documento foi corrigido à mão: só um gestor pode aprová-lo");
+        }
+        if (document.getTotalAmount() != null
+                && document.getTotalAmount().compareTo(approvalThresholds.approvalThresholdFor(organizationId)) > 0) {
             throw new AccessDeniedException(
                     "Despesa acima do limite de aprovação da organização: só um gestor pode aprová-la");
         }
+    }
+
+    /**
+     * Sem isto, corrigir {@code TOTAL_AMOUNT} para um valor abaixo do limite e aprovar a
+     * seguir contornava a verificação acima — o total corrente já refletia a correção.
+     */
+    private boolean hasHumanCorrectedAmount(Document document) {
+        List<ExtractedField> extractedFields = fields.findByDocumentId(document.getId());
+        return extractedFields.stream()
+                .anyMatch(field ->
+                        AMOUNT_FIELDS.contains(field.getFieldName()) && field.getSource() == FieldSource.HUMAN);
     }
 
     /**
