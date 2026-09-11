@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 /**
  * A rede de segurança para quando não há identidade de sessão configurada.
  *
- * <p>No perfil {@code local}, {@link DevBootstrap} é o {@link CurrentUserProvider}. A
- * etapa 06 traz outro, baseado no token JWT. Sem nenhum dos dois — no perfil {@code aws}
- * antes da etapa 06, ou num teste de contexto — a aplicação continua a arrancar, mas
- * qualquer pedido que precise de saber quem é o utilizador falha alto, em vez de a
- * aplicação nem sequer subir.
+ * <p>{@code AuthenticatedCurrentUserProvider} lê a identidade do token JWT validado pelo
+ * filtro de segurança. Sem um pedido autenticado por trás — num teste de contexto que não
+ * levanta segurança, por exemplo — a aplicação continua a arrancar, mas qualquer chamada
+ * que precise de saber quem é o utilizador falha alto, em vez de a aplicação nem sequer
+ * subir.
  */
 @Configuration(proxyBeanMethods = false)
 class CurrentUserConfig {
@@ -36,9 +36,13 @@ class CurrentUserConfig {
             throw refuse();
         }
 
+        @Override
+        public UserRole currentRole() {
+            throw refuse();
+        }
+
         private static UnsupportedOperationException refuse() {
-            return new UnsupportedOperationException(
-                    "Sem identidade de sessão: usa o perfil 'local' ou espera pela autenticação da etapa 06");
+            return new UnsupportedOperationException("Sem identidade de sessão: pedido não autenticado");
         }
     }
 }
