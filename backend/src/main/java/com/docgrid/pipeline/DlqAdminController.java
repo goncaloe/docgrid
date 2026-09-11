@@ -2,6 +2,7 @@ package com.docgrid.pipeline;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,13 +12,12 @@ import com.docgrid.pipeline.dto.DlqMessageView;
 import com.docgrid.pipeline.dto.RedriveSummary;
 
 /**
- * Administração da dead-letter queue: ver o que falhou e mandá-lo reprocessar.
- *
- * <p>Sem autenticação nem papéis — isso é a etapa 06, que fecha estes endpoints atrás de
- * um papel de administração. Até lá, {@code /api/admin/**} é território de confiança.
+ * Administração da dead-letter queue: ver o que falhou e mandá-lo reprocessar. Só
+ * {@code ADMIN} — não há organização a filtrar aqui, a fila é de todo o sistema.
  */
 @RestController
 @RequestMapping("/api/admin/dlq")
+@PreAuthorize("hasRole('ADMIN')")
 class DlqAdminController {
 
     private final DlqAdmin dlq;

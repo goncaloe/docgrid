@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,9 +24,11 @@ import com.docgrid.pipeline.dto.RedriveSummary;
 /**
  * O contrato REST da administração da DLQ. O {@link DlqAdmin} está mockado — a mecânica
  * do SQS prova-se em {@link DlqRedriveTest}; aqui prova-se só que os endpoints existem,
- * respondem e serializam o que devem.
+ * respondem e serializam o que devem. Segurança fica de fora deste slice (filtros
+ * desligados) — ver {@code DlqAdminAuthorizationTest} para o {@code @PreAuthorize} a sério.
  */
 @WebMvcTest(DlqAdminController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class DlqAdminControllerTest {
 
     @Autowired
