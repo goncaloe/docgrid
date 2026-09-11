@@ -21,8 +21,8 @@ import com.docgrid.document.dto.UploadUrlResponse;
  * O fluxo de upload: o cliente pede uma autorização, envia o ficheiro direto para o S3 e,
  * mais tarde, pede uma autorização de leitura. O ficheiro nunca passa por aqui.
  *
- * <p>Sem autenticação nem isolamento por organização — isso é a etapa 06. A identidade de
- * quem submete vem de {@link com.docgrid.auth.CurrentUserProvider}.
+ * <p>A identidade de quem submete e a organização vêm de
+ * {@link com.docgrid.auth.CurrentUserProvider}, preenchido pelo token JWT do pedido.
  */
 @RestController
 @RequestMapping("/api/documents")

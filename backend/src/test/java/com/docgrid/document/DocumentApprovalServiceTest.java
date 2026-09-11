@@ -1,6 +1,7 @@
 package com.docgrid.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,10 +13,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.auth.DemoIdentityConfiguration;
+import com.docgrid.auth.UserRole;
 import com.docgrid.extraction.FieldGeometry;
 import com.docgrid.supplier.SupplierHistory;
 import com.docgrid.supplier.SupplierHistoryProvider;
@@ -64,7 +67,7 @@ class DocumentApprovalServiceTest {
     void transitionsAnExtractedDocumentToApproved() {
         UUID documentId = anExtractedDocument(null);
 
-        approvals.approve(documentId, Actor.system(), null);
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, null);
 
         assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.APPROVED);
         assertThat(events.findByDocumentIdOrderByOccurredAtAscIdAsc(documentId))
@@ -76,7 +79,7 @@ class DocumentApprovalServiceTest {
     void doesNotTouchTheSupplierWhenNoCategoryIsChosen() {
         UUID documentId = anExtractedDocument("Cantina do Zé, Lda.");
 
-        approvals.approve(documentId, Actor.system(), null);
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, null);
 
         assertThat(supplierHistories.historyFor(organizationId, SUPPLIER_TAX_ID))
                 .isEqualTo(SupplierHistory.unknown());
@@ -86,7 +89,7 @@ class DocumentApprovalServiceTest {
     void createsTheSupplierOnTheFirstApprovalWithACategory() {
         UUID documentId = anExtractedDocument("Cantina do Zé, Lda.");
 
-        approvals.approve(documentId, Actor.system(), "Alimentação");
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, "Alimentação");
 
         SupplierHistory history = supplierHistories.historyFor(organizationId, SUPPLIER_TAX_ID);
         assertThat(history.usualCategory()).isEqualTo("Alimentação");
@@ -95,8 +98,18 @@ class DocumentApprovalServiceTest {
 
     @Test
     void aConsistentCategoryAcrossApprovalsGrowsTheStreak() {
-        approvals.approve(anExtractedDocument("Cantina do Zé, Lda."), Actor.system(), "Alimentação");
-        approvals.approve(anExtractedDocument("Cantina do Zé, Lda."), Actor.system(), "Alimentação");
+        approvals.approve(
+                anExtractedDocument("Cantina do Zé, Lda."),
+                organizationId,
+                Actor.system(),
+                UserRole.FINANCE,
+                "Alimentação");
+        approvals.approve(
+                anExtractedDocument("Cantina do Zé, Lda."),
+                organizationId,
+                Actor.system(),
+                UserRole.FINANCE,
+                "Alimentação");
 
         assertThat(supplierHistories.historyFor(organizationId, SUPPLIER_TAX_ID).occurrenceCount())
                 .isEqualTo(2);
@@ -104,8 +117,18 @@ class DocumentApprovalServiceTest {
 
     @Test
     void changingTheCategoryRestartsTheStreak() {
-        approvals.approve(anExtractedDocument("Cantina do Zé, Lda."), Actor.system(), "Alimentação");
-        approvals.approve(anExtractedDocument("Cantina do Zé, Lda."), Actor.system(), "Manutenção");
+        approvals.approve(
+                anExtractedDocument("Cantina do Zé, Lda."),
+                organizationId,
+                Actor.system(),
+                UserRole.FINANCE,
+                "Alimentação");
+        approvals.approve(
+                anExtractedDocument("Cantina do Zé, Lda."),
+                organizationId,
+                Actor.system(),
+                UserRole.FINANCE,
+                "Manutenção");
 
         SupplierHistory history = supplierHistories.historyFor(organizationId, SUPPLIER_TAX_ID);
         assertThat(history.usualCategory()).isEqualTo("Manutenção");
@@ -116,10 +139,54 @@ class DocumentApprovalServiceTest {
     void fallsBackToTheTaxIdWhenTheSupplierNameWasNeverExtracted() {
         UUID documentId = anExtractedDocument(null);
 
-        approvals.approve(documentId, Actor.system(), "Alimentação");
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, "Alimentação");
 
         assertThat(supplierHistories.historyFor(organizationId, SUPPLIER_TAX_ID).usualCategory())
                 .isEqualTo("Alimentação");
+    }
+
+    @Test
+    void refusesToApproveADocumentFromAnotherOrganization() {
+        UUID documentId = anExtractedDocument(null);
+        UUID otherOrganizationId = UUID.randomUUID();
+
+        assertThatThrownBy(() ->
+                        approvals.approve(documentId, otherOrganizationId, Actor.system(), UserRole.FINANCE, null))
+                .isInstanceOf(DocumentNotFoundException.class);
+    }
+
+    @Test
+    void onlyAManagerOrAdminApprovesAboveTheOrganizationThreshold() {
+        UUID documentId = anAboveThresholdDocument();
+
+        assertThatThrownBy(() -> approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, null))
+                .isInstanceOf(AccessDeniedException.class);
+
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.MANAGER, null);
+
+        assertThat(documents.findById(documentId).orElseThrow().getStatus()).isEqualTo(DocumentStatus.APPROVED);
+    }
+
+    /** Acima do limite de 1000.00 EUR semeado por {@code DemoIdentityConfiguration}. */
+    private UUID anAboveThresholdDocument() {
+        Document document = new Document(
+                organizationId,
+                submitterId,
+                "org/%s/2026/09/%s.pdf".formatted(organizationId, UUID.randomUUID()),
+                "fatura-grande.pdf",
+                "application/pdf");
+        document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null);
+        document.transitionTo(DocumentStatus.EXTRACTED, Actor.system(), null);
+        document.projectInvoiceFields(new InvoiceFields(
+                null,
+                SUPPLIER_TAX_ID,
+                "FT 2026/2",
+                LocalDate.of(2026, 8, 20),
+                new BigDecimal("2000.00"),
+                new BigDecimal("460.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("2460.00")));
+        return documents.save(document).getId();
     }
 
     /** Um documento já extraído, com NIF fixo e, opcionalmente, o nome do fornecedor. */

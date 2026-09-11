@@ -53,10 +53,15 @@ class DocumentServiceTest {
 
     @Test
     void writesAnAuditEventForEveryTransition() {
-        documentService.transition(documentId, DocumentStatus.PROCESSING, Actor.system(), null);
+        documentService.transition(documentId, organizationId, DocumentStatus.PROCESSING, Actor.system(), null);
         documentService.transition(
-                documentId, DocumentStatus.NEEDS_REVIEW, Actor.system(), "IVA não corresponde a nenhuma taxa");
-        documentService.transition(documentId, DocumentStatus.APPROVED, Actor.user(submitterId), "Corrigido à mão");
+                documentId,
+                organizationId,
+                DocumentStatus.NEEDS_REVIEW,
+                Actor.system(),
+                "IVA não corresponde a nenhuma taxa");
+        documentService.transition(
+                documentId, organizationId, DocumentStatus.APPROVED, Actor.user(submitterId), "Corrigido à mão");
         entityManager.flush();
 
         List<DocumentEvent> history = events.findByDocumentIdOrderByOccurredAtAscIdAsc(documentId);
@@ -71,9 +76,11 @@ class DocumentServiceTest {
 
     @Test
     void recordsWhoAskedForTheTransition() {
-        documentService.transition(documentId, DocumentStatus.PROCESSING, Actor.system(), "mensagem da fila");
-        documentService.transition(documentId, DocumentStatus.EXTRACTED, Actor.system(), null);
-        documentService.transition(documentId, DocumentStatus.APPROVED, Actor.user(submitterId), "Confere");
+        documentService.transition(
+                documentId, organizationId, DocumentStatus.PROCESSING, Actor.system(), "mensagem da fila");
+        documentService.transition(documentId, organizationId, DocumentStatus.EXTRACTED, Actor.system(), null);
+        documentService.transition(
+                documentId, organizationId, DocumentStatus.APPROVED, Actor.user(submitterId), "Confere");
         entityManager.flush();
 
         List<DocumentEvent> history = events.findByDocumentIdOrderByOccurredAtAscIdAsc(documentId);
@@ -88,7 +95,7 @@ class DocumentServiceTest {
 
     @Test
     void persistsTheNewStatusOnTheDocument() {
-        documentService.transition(documentId, DocumentStatus.PROCESSING, Actor.system(), null);
+        documentService.transition(documentId, organizationId, DocumentStatus.PROCESSING, Actor.system(), null);
         entityManager.flush();
         entityManager.clear();
 
@@ -100,13 +107,14 @@ class DocumentServiceTest {
 
     @Test
     void writesNothingWhenTheTransitionIsRefused() {
-        documentService.transition(documentId, DocumentStatus.PROCESSING, Actor.system(), null);
-        documentService.transition(documentId, DocumentStatus.EXTRACTED, Actor.system(), null);
-        documentService.transition(documentId, DocumentStatus.APPROVED, Actor.user(submitterId), "Confere");
+        documentService.transition(documentId, organizationId, DocumentStatus.PROCESSING, Actor.system(), null);
+        documentService.transition(documentId, organizationId, DocumentStatus.EXTRACTED, Actor.system(), null);
+        documentService.transition(
+                documentId, organizationId, DocumentStatus.APPROVED, Actor.user(submitterId), "Confere");
         entityManager.flush();
 
-        assertThatThrownBy(() ->
-                        documentService.transition(documentId, DocumentStatus.PROCESSING, Actor.system(), "outra vez"))
+        assertThatThrownBy(() -> documentService.transition(
+                        documentId, organizationId, DocumentStatus.PROCESSING, Actor.system(), "outra vez"))
                 .isInstanceOf(InvalidStatusTransitionException.class);
         entityManager.clear();
 
@@ -123,8 +131,18 @@ class DocumentServiceTest {
     void refusesToTransitionADocumentThatDoesNotExist() {
         UUID unknown = UUID.randomUUID();
 
-        assertThatThrownBy(() -> documentService.transition(unknown, DocumentStatus.PROCESSING, Actor.system(), null))
+        assertThatThrownBy(() -> documentService.transition(
+                        unknown, organizationId, DocumentStatus.PROCESSING, Actor.system(), null))
                 .isInstanceOf(DocumentNotFoundException.class)
                 .hasMessageContaining(unknown.toString());
+    }
+
+    @Test
+    void refusesToTransitionADocumentFromAnotherOrganization() {
+        UUID otherOrganizationId = AuthFixtures.organization(entityManager);
+
+        assertThatThrownBy(() -> documentService.transition(
+                        documentId, otherOrganizationId, DocumentStatus.PROCESSING, Actor.system(), null))
+                .isInstanceOf(DocumentNotFoundException.class);
     }
 }

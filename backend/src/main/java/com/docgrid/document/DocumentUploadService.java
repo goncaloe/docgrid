@@ -112,8 +112,9 @@ public class DocumentUploadService {
     public FileUrlResponse fileUrl(UUID documentId) {
         MDC.put("documentId", documentId.toString());
         try {
-            Document document =
-                    documents.findById(documentId).orElseThrow(() -> new DocumentNotFoundException(documentId));
+            Document document = documents
+                    .findByIdAndOrganizationId(documentId, currentUser.currentOrganizationId())
+                    .orElseThrow(() -> new DocumentNotFoundException(documentId));
             PresignedUrl url =
                     storage.createDownloadUrl(document.getStorageKey(), document.getOriginalFilename(), urlTtl);
             return new FileUrlResponse(url.url(), url.expiresAt());

@@ -36,13 +36,17 @@ public class DocumentService {
      *
      * @param reason porquê, em português; pode ser nulo quando é o sistema a agir e o
      *     motivo é evidente pelo par de estados
-     * @throws DocumentNotFoundException se o documento não existir
+     * @throws DocumentNotFoundException se o documento não existir nesta organização — ler
+     *     um documento de outra organização é tratado como se não existisse, e não como
+     *     falta de permissão, para a resposta não revelar que existe
      * @throws InvalidStatusTransitionException se o ciclo de vida não permitir a transição;
      *     nesse caso nada é escrito
      */
     @Transactional
-    public void transition(UUID documentId, DocumentStatus target, Actor actor, String reason) {
-        Document document = documents.findById(documentId).orElseThrow(() -> new DocumentNotFoundException(documentId));
+    public void transition(UUID documentId, UUID organizationId, DocumentStatus target, Actor actor, String reason) {
+        Document document = documents
+                .findByIdAndOrganizationId(documentId, organizationId)
+                .orElseThrow(() -> new DocumentNotFoundException(documentId));
         DocumentStatus from = document.getStatus();
 
         events.save(document.transitionTo(target, actor, reason));
