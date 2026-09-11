@@ -28,6 +28,10 @@ public class ValidationEngine {
     @Transactional
     public ValidationSummary validate(ValidationContext context) {
         results.deleteByDocumentId(context.documentId());
+        // Sem isto, o Hibernate insere os resultados novos antes de apagar os antigos (a
+        // ordem de flush por omissão é inserts antes de deletes) e a constraint única em
+        // (document_id, rule_name) rebenta numa revalidação.
+        results.flush();
 
         boolean requiresReview = false;
         StringBuilder reason = new StringBuilder();
