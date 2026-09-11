@@ -18,6 +18,10 @@ docgrid:
     endpoint: ${DOCGRID_S3_ENDPOINT:http://localhost:4566}
     access-key: ${AWS_ACCESS_KEY_ID:test}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+  jwt:
+    # Fixo e óbvio de propósito, tal como as credenciais do LocalStack acima: nunca é o
+    # segredo de nada que exista fora da máquina de quem desenvolve.
+    secret: ${JWT_SECRET:desenvolvimento-local-docgrid-nao-usar-em-producao-32bytes}
 
 logging:
   level:

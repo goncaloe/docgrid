@@ -18,15 +18,25 @@ spring:
     enabled: true
     locations: classpath:db/migration
   mvc:
-    # Erros saem como application/problem+json (RFC 7807). O tratamento completo
-    # — tipos, títulos, formato uniforme — chega na etapa 06.
+    # Erros saem como application/problem+json (RFC 7807), com tipo e título uniformes —
+    # ver com.docgrid.shared.GlobalExceptionHandler.
     problemdetails:
       enabled: true
 
 server:
   port: ${SERVER_PORT:8080}
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
 docgrid:
+  jwt:
+    # Sem valor por omissão de propósito: a regra 4 do AGENTS.md é sem segredos no
+    # repositório, e um segredo com omissão previsível não protege nada em produção.
+    secret: ${JWT_SECRET:}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:30d}
   queue:
     name: ${DOCGRID_QUEUE:docgrid-document-processing}
     dlq-name: ${DOCGRID_DLQ:docgrid-document-processing-dlq}

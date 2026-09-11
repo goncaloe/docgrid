@@ -74,6 +74,10 @@ class User extends BaseEntity {
         return email;
     }
 
+    String getPasswordHash() {
+        return passwordHash;
+    }
+
     String getFullName() {
         return fullName;
     }
