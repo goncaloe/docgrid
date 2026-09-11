@@ -23,6 +23,22 @@ if ! s3api head-bucket --bucket "${BUCKET}" 2>/dev/null; then
         --create-bucket-configuration LocationConstraint="${REGION}"
 fi
 
+# O upload é um PUT direto do browser para este bucket (etapa 07). Sem CORS, o
+# preflight OPTIONS falha e nenhum ficheiro sobe a partir do frontend. A origem é a do
+# Vite dev server; em AWS real, a etapa 11 configura a origem de produção no Terraform.
+s3api put-bucket-cors --bucket "${BUCKET}" --cors-configuration '
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["http://localhost:5173"],
+      "AllowedMethods": ["PUT", "GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}'
+
 if ! sqs get-queue-url --queue-name "${DLQ}" 2>/dev/null | grep -q QueueUrl; then
     # A DLQ retém os ficheiros para sempre (14 dias, o máximo do SQS): uma mensagem que
     # cá pára só desaparece por decisão de alguém.
