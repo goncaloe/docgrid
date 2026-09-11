@@ -10,18 +10,25 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.auth.DemoIdentityConfiguration;
+import com.docgrid.auth.JwtTestSupport;
+import com.docgrid.auth.UserRole;
 import com.docgrid.document.dto.FileUrlResponse;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
@@ -49,12 +56,31 @@ class DocumentUploadFlowTest {
     @Autowired
     private S3Client s3;
 
+    @Autowired
+    private CurrentUserProvider currentUser;
+
+    @Autowired
+    private JwtTestSupport jwt;
+
+    private HttpHeaders authHeaders;
+
+    @BeforeEach
+    void setUp() {
+        String token =
+                jwt.accessToken(currentUser.currentUserId(), currentUser.currentOrganizationId(), UserRole.FINANCE);
+        authHeaders = new HttpHeaders();
+        authHeaders.setBearerAuth(token);
+    }
+
     @Test
     void authorizesUploadsFileToS3AndReadsItBack() throws Exception {
         UploadUrlRequest request = new UploadUrlRequest("fatura setembro.pdf", "application/pdf", (long) FILE.length);
 
-        ResponseEntity<UploadUrlResponse> authorization =
-                rest.postForEntity("/api/documents/upload-url", request, UploadUrlResponse.class);
+        ResponseEntity<UploadUrlResponse> authorization = rest.exchange(
+                "/api/documents/upload-url",
+                HttpMethod.POST,
+                new HttpEntity<>(request, authHeaders),
+                UploadUrlResponse.class);
 
         assertThat(authorization.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         UploadUrlResponse url = authorization.getBody();
@@ -75,8 +101,13 @@ class DocumentUploadFlowTest {
                         .contentLength())
                 .isEqualTo((long) FILE.length);
 
-        FileUrlResponse fileUrl =
-                rest.getForObject("/api/documents/{id}/file-url", FileUrlResponse.class, url.documentId());
+        FileUrlResponse fileUrl = rest.exchange(
+                        "/api/documents/{id}/file-url",
+                        HttpMethod.GET,
+                        new HttpEntity<>(authHeaders),
+                        FileUrlResponse.class,
+                        url.documentId())
+                .getBody();
         HttpResponse<byte[]> download =
                 http.send(HttpRequest.newBuilder(fileUrl.url()).GET().build(), BodyHandlers.ofByteArray());
 
@@ -88,7 +119,8 @@ class DocumentUploadFlowTest {
     void rejectsADisallowedFileTypeWith400ProblemJson() {
         UploadUrlRequest request = new UploadUrlRequest("gato.exe", "application/x-msdownload", 512L);
 
-        ResponseEntity<String> response = rest.postForEntity("/api/documents/upload-url", request, String.class);
+        ResponseEntity<String> response = rest.exchange(
+                "/api/documents/upload-url", HttpMethod.POST, new HttpEntity<>(request, authHeaders), String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
@@ -99,7 +131,8 @@ class DocumentUploadFlowTest {
     void rejectsAMalformedRequestWith400ProblemJson() {
         UploadUrlRequest request = new UploadUrlRequest(" ", "application/pdf", 512L);
 
-        ResponseEntity<String> response = rest.postForEntity("/api/documents/upload-url", request, String.class);
+        ResponseEntity<String> response = rest.exchange(
+                "/api/documents/upload-url", HttpMethod.POST, new HttpEntity<>(request, authHeaders), String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
@@ -107,8 +140,12 @@ class DocumentUploadFlowTest {
 
     @Test
     void fileUrlForAnUnknownDocumentIs404() {
-        ResponseEntity<String> response =
-                rest.getForEntity("/api/documents/{id}/file-url", String.class, UUID.randomUUID());
+        ResponseEntity<String> response = rest.exchange(
+                "/api/documents/{id}/file-url",
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders),
+                String.class,
+                UUID.randomUUID());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }

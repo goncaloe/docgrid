@@ -12,7 +12,9 @@ import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.auth.DemoIdentityConfiguration;
+import com.docgrid.auth.UserRole;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
 import com.docgrid.support.LocalStackPipelineConfiguration;
@@ -50,11 +52,15 @@ class DocumentProcessorDuplicateTest {
     @Autowired
     private S3Client s3;
 
+    @Autowired
+    private CurrentUserProvider currentUser;
+
     @Test
     void submittingTheSameApprovedInvoiceTwiceFlagsItAsDuplicate() {
         UploadUrlResponse first = registerAndStore("primeira entrega desta fatura".getBytes(UTF_8));
         processor.process(BUCKET, first.storageKey(), false);
-        approvals.approve(first.documentId(), Actor.system(), null);
+        approvals.approve(
+                first.documentId(), currentUser.currentOrganizationId(), Actor.system(), UserRole.FINANCE, null);
 
         UploadUrlResponse second = registerAndStore("segunda vez, mesma fatura, ficheiro diferente".getBytes(UTF_8));
         ProcessingOutcome outcome = processor.process(BUCKET, second.storageKey(), false);

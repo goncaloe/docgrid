@@ -19,6 +19,7 @@ import org.springframework.util.unit.DataSize;
 
 import com.docgrid.auth.AuthFixtures;
 import com.docgrid.auth.CurrentUserProvider;
+import com.docgrid.auth.UserRole;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
 import com.docgrid.storage.NoSuchObjectException;
@@ -146,6 +147,11 @@ class DocumentUploadServiceTest {
         @Override
         public UUID currentUserId() {
             return userId;
+        }
+
+        @Override
+        public UserRole currentRole() {
+            return UserRole.FINANCE;
         }
     }
 

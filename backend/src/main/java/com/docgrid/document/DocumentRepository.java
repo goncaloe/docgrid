@@ -1,5 +1,6 @@
 package com.docgrid.document;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -7,6 +8,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * As consultas de que as etapas seguintes precisam, todas derivadas do nome do método.
@@ -41,4 +44,34 @@ interface DocumentRepository extends JpaRepository<Document, UUID> {
     List<Document> findByOrganizationIdAndFileHash(UUID organizationId, String fileHash);
 
     long countByOrganizationIdAndStatus(UUID organizationId, DocumentStatus status);
+
+    /**
+     * A listagem geral (etapa 06): estado, fornecedor e período são filtros opcionais,
+     * combináveis. {@code submittedBy} é preenchido só para {@code EMPLOYEE} — vê apenas o
+     * que submeteu; os outros papéis veem toda a organização.
+     *
+     * <p>{@code from}/{@code to} usam {@code coalesce}, não {@code :param is null or ...},
+     * porque o Postgres não consegue inferir o tipo de um parâmetro {@code Instant} só
+     * comparado em {@code is null} (tenta {@code bytea} e a comparação com {@code timestamptz}
+     * rebenta). {@code coalesce(:from, d.createdAt)} usa o parâmetro sempre no mesmo
+     * contexto tipado, e vira um no-op quando é nulo.
+     */
+    @Query("""
+            select d from Document d
+            where d.organizationId = :organizationId
+              and (:submittedBy is null or d.submittedBy = :submittedBy)
+              and (:status is null or d.status = :status)
+              and (:supplierTaxId is null or d.supplierTaxId = :supplierTaxId)
+              and d.createdAt >= coalesce(:from, d.createdAt)
+              and d.createdAt <= coalesce(:to, d.createdAt)
+            order by d.createdAt desc
+            """)
+    Page<Document> search(
+            @Param("organizationId") UUID organizationId,
+            @Param("submittedBy") UUID submittedBy,
+            @Param("status") DocumentStatus status,
+            @Param("supplierTaxId") String supplierTaxId,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            Pageable pageable);
 }
