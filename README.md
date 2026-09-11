@@ -18,7 +18,7 @@ IVA a 6%, 13% e 23%.
 |---|---|
 | Backend | Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway |
 | Testes | JUnit 5, AssertJ, Testcontainers |
-| Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine *(a partir da etapa 07)* |
+| Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine |
 | AWS | S3, SQS, Textract, RDS, ECS Fargate *(a partir da etapa 02)* |
 | Local | Docker Compose com Postgres e LocalStack |
 
@@ -69,9 +69,35 @@ backend/         API e worker Spring Boot, organizados por funcionalidade
     auth/          autenticação e papéis
     shared/        configuração, exceções, utilitários
 docker/          scripts de arranque do LocalStack
-frontend/        aplicação React (etapa 07)
+frontend/        aplicação React (Vite + TypeScript + Mantine)
+  src/
+    api/           cliente HTTP, tipos da API, chamadas de autenticação e documentos
+    auth/          contexto de sessão e guardas de rota por papel
+    layout/        navegação lateral, cabeçalho, indicador de fila de revisão
+    features/      páginas por funcionalidade (auth, documents, review, upload)
 scripts/         utilitários dos comandos npm
 ```
+
+## Frontend
+
+O frontend é um projeto Node à parte, com o seu próprio `package.json`:
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173, com proxy de /api para o backend em :8080
+```
+
+Para a aplicação falar com o backend, tens de ter `npm run up` a correr noutro terminal.
+Uma conta cria-se por `POST /api/auth/register` (não há ecrã de registo) — usa o Swagger
+UI em `localhost:8080/swagger-ui.html` ou o exemplo `curl` no handoff da etapa 06.
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento do Vite |
+| `npm run build` | Verificação de tipos e build de produção |
+| `npm test` | Testes com Vitest, Testing Library e MSW |
+| `npm run lint` | ESLint |
 
 ## Ambiente local
 
