@@ -1,5 +1,7 @@
 package com.docgrid.pipeline;
 
+import org.springframework.http.HttpStatus;
+
 import com.docgrid.shared.DomainException;
 
 /**
@@ -7,7 +9,9 @@ import com.docgrid.shared.DomainException;
  *
  * <p>Erro permanente: a mensagem nunca vai passar a ser legível, por isso o worker não
  * a apaga — deixa-a esgotar as entregas e chegar à dead-letter queue, onde alguém a pode
- * inspecionar. Apagá-la de imediato seria esconder o problema em vez de o tratar.
+ * inspecionar. Apagá-la de imediato seria esconder o problema em vez de o tratar. Nunca
+ * atravessa a fronteira de um controller REST, mas herda de {@code DomainException} como
+ * todo o resto.
  */
 public class MalformedS3EventException extends DomainException {
 
@@ -15,7 +19,7 @@ public class MalformedS3EventException extends DomainException {
 
     /** A mensagem de erro não repete o corpo da mensagem, só o seu início. */
     public MalformedS3EventException(String body) {
-        super(PREFIX + preview(body));
+        super(HttpStatus.BAD_REQUEST, PREFIX + preview(body));
     }
 
     private static String preview(String body) {
