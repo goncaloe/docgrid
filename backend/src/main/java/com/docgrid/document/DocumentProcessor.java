@@ -2,8 +2,6 @@ package com.docgrid.document;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -14,16 +12,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.docgrid.auth.ApprovalThresholdProvider;
 import com.docgrid.extraction.DocumentExtractor;
 import com.docgrid.extraction.ExtractionResult;
 import com.docgrid.extraction.UnreadableDocumentException;
 import com.docgrid.storage.NoSuchObjectException;
 import com.docgrid.storage.StorageProperties;
 import com.docgrid.storage.StorageService;
-import com.docgrid.supplier.SupplierHistory;
-import com.docgrid.supplier.SupplierHistoryProvider;
-import com.docgrid.validation.ValidationContext;
 import com.docgrid.validation.ValidationEngine;
 import com.docgrid.validation.ValidationSummary;
 
@@ -55,8 +49,7 @@ public class DocumentProcessor {
     private final StorageService storage;
     private final DocumentExtractor extractor;
     private final ValidationEngine validationEngine;
-    private final ApprovalThresholdProvider approvalThresholds;
-    private final SupplierHistoryProvider supplierHistories;
+    private final DocumentValidationContextFactory validationContexts;
     private final TransactionTemplate transactions;
     private final String bucket;
 
@@ -67,8 +60,7 @@ public class DocumentProcessor {
             StorageService storage,
             DocumentExtractor extractor,
             ValidationEngine validationEngine,
-            ApprovalThresholdProvider approvalThresholds,
-            SupplierHistoryProvider supplierHistories,
+            DocumentValidationContextFactory validationContexts,
             TransactionTemplate transactions,
             StorageProperties storageProperties) {
         this.documents = documents;
@@ -77,8 +69,7 @@ public class DocumentProcessor {
         this.storage = storage;
         this.extractor = extractor;
         this.validationEngine = validationEngine;
-        this.approvalThresholds = approvalThresholds;
-        this.supplierHistories = supplierHistories;
+        this.validationContexts = validationContexts;
         this.transactions = transactions;
         this.bucket = storageProperties.bucket();
     }
@@ -249,72 +240,14 @@ public class DocumentProcessor {
             document.projectInvoiceFields(result.invoiceFields());
             writeExtractedFields(document, result);
 
-            ValidationSummary summary = validationEngine.validate(buildValidationContext(document, result));
+            ValidationSummary summary =
+                    validationEngine.validate(validationContexts.build(document, result.confidences()));
             DocumentStatus target = summary.requiresReview() ? DocumentStatus.NEEDS_REVIEW : DocumentStatus.EXTRACTED;
             events.save(document.transitionTo(target, Actor.system(), truncate(summary.reason())));
 
             claims.findById(storageKey).orElseThrow().complete();
             return null;
         });
-    }
-
-    /**
-     * Monta o que o motor de validação precisa, com as consultas de duplicado já
-     * resolvidas — o motor não conhece {@link DocumentRepository}, só interpreta o que já
-     * foi encontrado. Corre depois de {@code projectInvoiceFields}, porque precisa do
-     * {@code supplierTaxId}/{@code invoiceNumber} já escritos no documento.
-     */
-    private ValidationContext buildValidationContext(Document document, ExtractionResult result) {
-        UUID duplicateInvoiceDocumentId = findDuplicateInvoiceDocumentId(document);
-        UUID duplicateFileDocumentId = findDuplicateFileDocumentId(document);
-        SupplierHistory supplierHistory =
-                supplierHistories.historyFor(document.getOrganizationId(), document.getSupplierTaxId());
-
-        return new ValidationContext(
-                document.getId(),
-                document.getSupplierTaxId(),
-                document.getInvoiceNumber(),
-                document.getIssueDate(),
-                document.getNetAmount(),
-                document.getVatAmount(),
-                document.getVatRate(),
-                document.getTotalAmount(),
-                result.confidences(),
-                approvalThresholds.approvalThresholdFor(document.getOrganizationId()),
-                duplicateInvoiceDocumentId,
-                duplicateFileDocumentId,
-                supplierHistory.usualCategory(),
-                supplierHistory.occurrenceCount(),
-                LocalDate.now());
-    }
-
-    /** A mesma fatura (NIF+número) já aprovada — só isso conta como duplicado de negócio. */
-    private UUID findDuplicateInvoiceDocumentId(Document document) {
-        if (document.getSupplierTaxId() == null || document.getInvoiceNumber() == null) {
-            return null;
-        }
-        return documents
-                .findByOrganizationIdAndSupplierTaxIdAndInvoiceNumber(
-                        document.getOrganizationId(), document.getSupplierTaxId(), document.getInvoiceNumber())
-                .stream()
-                .filter(other -> !other.getId().equals(document.getId()))
-                .filter(other -> other.getStatus() == DocumentStatus.APPROVED)
-                .min(Comparator.comparing(Document::getCreatedAt))
-                .map(Document::getId)
-                .orElse(null);
-    }
-
-    /**
-     * O mesmo ficheiro submetido outra vez. Exclui {@code REJECTED}: depois de uma
-     * rejeição, reenviar o mesmo PDF não deve ficar preso num falso duplicado eterno.
-     */
-    private UUID findDuplicateFileDocumentId(Document document) {
-        return documents.findByOrganizationIdAndFileHash(document.getOrganizationId(), document.getFileHash()).stream()
-                .filter(other -> !other.getId().equals(document.getId()))
-                .filter(other -> other.getStatus() != DocumentStatus.REJECTED)
-                .min(Comparator.comparing(Document::getCreatedAt))
-                .map(Document::getId)
-                .orElse(null);
     }
 
     private void writeExtractedFields(Document document, ExtractionResult result) {
