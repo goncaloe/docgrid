@@ -45,17 +45,23 @@ class Supplier extends BaseEntity {
         this.occurrenceCount = 0;
     }
 
-    /** Chamado a cada documento aprovado deste fornecedor (etapa 05). */
-    void recordOccurrence() {
-        occurrenceCount++;
-    }
-
     /**
-     * Fixa a categoria a sugerir. Decidir quando o histórico já a sustenta é da etapa 05;
-     * aqui só se guarda a conclusão.
+     * Chamado a cada documento aprovado deste fornecedor, com a categoria escolhida.
+     *
+     * <p>{@code occurrenceCount} é o comprimento da sequência de aprovações
+     * <strong>consecutivas</strong> na mesma categoria: mantém-se incrementa, muda
+     * reinicia a 1. A sugestão só se torna visível a partir de 5 (ver
+     * {@code CategorySuggestionRule}, etapa 05) — antes disso, {@code usualCategory} já
+     * guarda a categoria da sequência em curso, só ainda não é sugerida.
      */
-    void rememberUsualCategory(String category) {
-        this.usualCategory = category;
+    void recordApproval(String category) {
+        Objects.requireNonNull(category, "category");
+        if (category.equals(usualCategory)) {
+            occurrenceCount++;
+        } else {
+            usualCategory = category;
+            occurrenceCount = 1;
+        }
     }
 
     UUID getOrganizationId() {

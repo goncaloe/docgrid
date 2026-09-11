@@ -53,9 +53,8 @@ class SupplierRepositoryTest {
         entityManager.flush();
 
         for (int i = 0; i < 5; i++) {
-            supplier.recordOccurrence();
+            supplier.recordApproval("Combustível");
         }
-        supplier.rememberUsualCategory("Combustível");
         entityManager.flush();
         entityManager.clear();
 
