@@ -8,6 +8,8 @@ GEMINI.md
 .codex/
 .gemini/
 .omp/
+.pi/
+.pi-lens.json
 .github/copilot-instructions.md
 
 # Segredos e configuração de ambiente
@@ -42,6 +44,7 @@ node_modules/
 dist/
 dist-ssr/
 .vite/
+.vitest/
 coverage/
 *.local
 .eslintcache

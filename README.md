@@ -15,7 +15,7 @@ IVA a 6%, 13% e 23%.
 ## Stack
 
 | Camada | Tecnologia |
-|---|---|
+| --- | --- |
 | Backend | Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway |
 | Testes | JUnit 5, AssertJ, Testcontainers |
 | Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine |
@@ -44,7 +44,7 @@ Para mudar portas ou palavra-passe, copia o `.env.example` para `.env`.
 ## Comandos
 
 | Comando | O que faz |
-|---|---|
+| --- | --- |
 | `npm run up` | Levanta a infraestrutura e arranca a aplicação no perfil `local` |
 | `npm run infra` | Só Postgres e LocalStack — para correres a aplicação no IDE |
 | `npm run down` | Pára tudo e apaga os volumes |
@@ -93,7 +93,7 @@ Uma conta cria-se por `POST /api/auth/register` (não há ecrã de registo) — 
 UI em `localhost:8080/swagger-ui.html` ou o exemplo `curl` no handoff da etapa 06.
 
 | Comando | O que faz |
-|---|---|
+| --- | --- |
 | `npm run dev` | Servidor de desenvolvimento do Vite |
 | `npm run build` | Verificação de tipos e build de produção |
 | `npm test` | Testes com Vitest, Testing Library e MSW |
@@ -105,7 +105,7 @@ O `docker-compose.yml` levanta apenas a infraestrutura; a aplicação corre no h
 ciclo de alteração e reinício ser imediato.
 
 | | Local | AWS |
-|---|---|---|
+| --- | --- | --- |
 | Armazenamento | LocalStack S3 | S3 |
 | Fila | LocalStack SQS | SQS + DLQ |
 | Base de dados | Postgres em Docker | RDS Postgres |
