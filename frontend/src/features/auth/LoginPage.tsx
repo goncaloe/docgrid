@@ -1,7 +1,7 @@
 import { Alert, Button, Center, Paper, PasswordInput, Stack, TextInput, Title } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useState } from "react";
-import { useLocation, useNavigate, type Location } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, type Location } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
@@ -11,7 +11,7 @@ interface LocationState {
 }
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -38,9 +38,14 @@ export function LoginPage() {
     }
   }
 
+  // Já autenticado: o formulário não tem nada a fazer aqui.
+  if (session !== null) {
+    return <Navigate to="/documents" replace />;
+  }
+
   return (
-    <Center h="100vh" bg="gray.0">
-      <Paper withBorder shadow="sm" p="xl" radius="md" w={360}>
+    <Center h="100vh" bg="gray.0" p="md">
+      <Paper withBorder shadow="sm" p="xl" radius="md" w="100%" maw={360}>
         <Stack gap="md">
           <Title order={2}>DocGrid</Title>
           <form onSubmit={(event) => void handleSubmit(event)}>
