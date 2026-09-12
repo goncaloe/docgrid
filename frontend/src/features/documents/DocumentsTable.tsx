@@ -14,6 +14,17 @@ function formatAmount(doc: DocumentSummaryResponse): string {
   return doc.currency !== null ? `${amount} ${doc.currency}` : amount;
 }
 
+/**
+ * `issueDate` é um `LocalDate` — uma data de calendário, sem hora nem fuso. Passá-la ao
+ * `new Date()` faria dela meia-noite UTC, que a oeste de Greenwich se lê como o dia
+ * anterior. Constrói-se a data no fuso local a partir dos três números.
+ */
+function formatLocalDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (year === undefined || month === undefined || day === undefined) return isoDate;
+  return dateFormatter.format(new Date(year, month - 1, day));
+}
+
 const columns: ColumnDef<DocumentSummaryResponse>[] = [
   { header: "Fornecedor (NIF)", accessorKey: "supplierTaxId", cell: (info) => info.getValue<string | null>() ?? "—" },
   { header: "Nº fatura", accessorKey: "invoiceNumber", cell: (info) => info.getValue<string | null>() ?? "—" },
@@ -22,7 +33,7 @@ const columns: ColumnDef<DocumentSummaryResponse>[] = [
     accessorKey: "issueDate",
     cell: (info) => {
       const value = info.getValue<string | null>();
-      return value === null ? "—" : dateFormatter.format(new Date(value));
+      return value === null ? "—" : formatLocalDate(value);
     },
   },
   { header: "Total", id: "totalAmount", cell: (info) => formatAmount(info.row.original) },
