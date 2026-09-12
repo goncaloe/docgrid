@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.docgrid.auth.AuthFixtures;
 import com.docgrid.auth.JwtTestSupport;
 import com.docgrid.auth.UserRole;
+import com.docgrid.extraction.FieldGeometry;
 import com.docgrid.support.PostgresContainerConfiguration;
 
 /**
@@ -133,6 +135,45 @@ class DocumentControllerTest {
     }
 
     @Test
+    void theDetailBringsContentTypeAndFieldGeometry() throws Exception {
+        UUID organizationId = AuthFixtures.organization(entityManager);
+        UUID finance = AuthFixtures.user(entityManager, organizationId, "financas@padaria.pt", UserRole.FINANCE);
+        UUID documentId = anExtractedDocumentWithGeometry(organizationId, finance, "FT 2026/3");
+        String token = jwt.accessToken(finance, organizationId, UserRole.FINANCE);
+
+        mvc.perform(get("/api/documents/" + documentId).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contentType").value("application/pdf"))
+                .andExpect(jsonPath("$.duplicateOfDocumentId").doesNotExist())
+                .andExpect(jsonPath("$.fields[0].fieldName").value("SUPPLIER_NAME"))
+                .andExpect(jsonPath("$.fields[0].page").value(1))
+                .andExpect(jsonPath("$.fields[0].boundingBox").value(org.hamcrest.Matchers.hasSize(4)))
+                .andExpect(jsonPath("$.fields[0].boundingBox[0].x").value(0.1))
+                .andExpect(jsonPath("$.fields[0].boundingBox[0].y").value(0.2));
+    }
+
+    @Test
+    void theDetailShowsTheDuplicateOnceTheFirstIsApproved() throws Exception {
+        UUID organizationId = AuthFixtures.organization(entityManager);
+        UUID finance = AuthFixtures.user(entityManager, organizationId, "financas@padaria.pt", UserRole.FINANCE);
+        String financeToken = jwt.accessToken(finance, organizationId, UserRole.FINANCE);
+
+        UUID firstDocumentId = anExtractedDocumentWithGeometry(organizationId, finance, "FT 2026/4");
+        mvc.perform(post("/api/documents/" + firstDocumentId + "/approve")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + financeToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        UUID secondDocumentId = anExtractedDocumentWithGeometry(organizationId, finance, "FT 2026/4");
+
+        mvc.perform(get("/api/documents/" + secondDocumentId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + financeToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicateOfDocumentId").value(firstDocumentId.toString()));
+    }
+
+    @Test
     void onlyAManagerApprovesAboveTheThreshold() throws Exception {
         UUID organizationId = AuthFixtures.organization(entityManager);
         UUID finance = AuthFixtures.user(entityManager, organizationId, "financas@padaria.pt", UserRole.FINANCE);
@@ -170,6 +211,39 @@ class DocumentControllerTest {
                 "Cantina do Zé, Lda.",
                 "505123452",
                 "FT 2026/1",
+                LocalDate.of(2026, 8, 20),
+                new BigDecimal("100.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("123.00")));
+        return documents.save(document).getId();
+    }
+
+    private UUID anExtractedDocumentWithGeometry(UUID organizationId, UUID submittedBy, String invoiceNumber) {
+        Document document = new Document(
+                organizationId,
+                submittedBy,
+                "org/%s/2026/09/%s.pdf".formatted(organizationId, UUID.randomUUID()),
+                "fatura.pdf",
+                "application/pdf");
+        document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null);
+        document.transitionTo(DocumentStatus.EXTRACTED, Actor.system(), null);
+        ExtractedField.readByMachine(
+                document,
+                ExtractedFieldName.SUPPLIER_NAME,
+                "Cantina do Zé, Lda.",
+                new BigDecimal("0.98"),
+                new FieldGeometry(
+                        1,
+                        List.of(
+                                new FieldGeometry.Point(0.1, 0.2),
+                                new FieldGeometry.Point(0.4, 0.2),
+                                new FieldGeometry.Point(0.4, 0.3),
+                                new FieldGeometry.Point(0.1, 0.3))));
+        document.projectInvoiceFields(new InvoiceFields(
+                "Cantina do Zé, Lda.",
+                "505123452",
+                invoiceNumber,
                 LocalDate.of(2026, 8, 20),
                 new BigDecimal("100.00"),
                 new BigDecimal("23.00"),

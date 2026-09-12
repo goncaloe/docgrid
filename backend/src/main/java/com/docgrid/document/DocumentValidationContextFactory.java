@@ -82,8 +82,18 @@ class DocumentValidationContextFactory {
         return confidences;
     }
 
+    /**
+     * O duplicado a mostrar ao revisor: a mesma fatura já aprovada, senão o mesmo ficheiro
+     * ainda pendente — a mesma prioridade que {@link #build} dá à regra de negócio sobre a
+     * binária.
+     */
+    UUID duplicateOf(Document document) {
+        UUID invoiceDuplicate = findDuplicateInvoiceDocumentId(document);
+        return invoiceDuplicate != null ? invoiceDuplicate : findDuplicateFileDocumentId(document);
+    }
+
     /** A mesma fatura (NIF+número) já aprovada — só isso conta como duplicado de negócio. */
-    private UUID findDuplicateInvoiceDocumentId(Document document) {
+    UUID findDuplicateInvoiceDocumentId(Document document) {
         if (document.getSupplierTaxId() == null || document.getInvoiceNumber() == null) {
             return null;
         }
@@ -102,7 +112,7 @@ class DocumentValidationContextFactory {
      * O mesmo ficheiro submetido outra vez. Exclui {@code REJECTED}: depois de uma rejeição,
      * reenviar o mesmo PDF não deve ficar preso num falso duplicado eterno.
      */
-    private UUID findDuplicateFileDocumentId(Document document) {
+    UUID findDuplicateFileDocumentId(Document document) {
         return documents.findByOrganizationIdAndFileHash(document.getOrganizationId(), document.getFileHash()).stream()
                 .filter(other -> !other.getId().equals(document.getId()))
                 .filter(other -> other.getStatus() != DocumentStatus.REJECTED)

@@ -10,6 +10,8 @@ public record DocumentDetailResponse(
         UUID id,
         String status,
         String originalFilename,
+        String contentType,
+        UUID duplicateOfDocumentId,
         String supplierTaxId,
         String invoiceNumber,
         LocalDate issueDate,
