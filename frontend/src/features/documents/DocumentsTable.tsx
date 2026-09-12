@@ -56,9 +56,18 @@ interface DocumentsTableProps {
   onRetry: () => void;
   onPageChange: (page: number) => void;
   emptyMessage: string;
+  onRowClick?: (id: string) => void;
 }
 
-export function DocumentsTable({ page, isLoading, isError, onRetry, onPageChange, emptyMessage }: DocumentsTableProps) {
+export function DocumentsTable({
+  page,
+  isLoading,
+  isError,
+  onRetry,
+  onPageChange,
+  emptyMessage,
+  onRowClick,
+}: DocumentsTableProps) {
   const table = useReactTable({
     data: page?.items ?? [],
     columns,
@@ -103,7 +112,21 @@ export function DocumentsTable({ page, isLoading, isError, onRetry, onPageChange
           </Table.Thead>
           <Table.Tbody>
             {table.getRowModel().rows.map((row) => (
-              <Table.Tr key={row.id}>
+              <Table.Tr
+                key={row.id}
+                onClick={onRowClick === undefined ? undefined : () => onRowClick(row.original.id)}
+                onKeyDown={
+                  onRowClick === undefined
+                    ? undefined
+                    : (event) => {
+                        if (event.key === "Enter") {
+                          onRowClick(row.original.id);
+                        }
+                      }
+                }
+                tabIndex={onRowClick === undefined ? undefined : 0}
+                style={onRowClick === undefined ? undefined : { cursor: "pointer" }}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <Table.Td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Td>
                 ))}

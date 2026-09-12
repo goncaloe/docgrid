@@ -1,5 +1,6 @@
 import { Stack, Title } from "@mantine/core";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import type { DocumentListFilters } from "../../api/types";
 import { DocumentFilters, EMPTY_DOCUMENT_FILTERS, type DocumentFiltersValue } from "./DocumentFilters";
@@ -18,6 +19,7 @@ function toApiFilters(filters: DocumentFiltersValue, page: number): DocumentList
 }
 
 export function DocumentsListPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<DocumentFiltersValue>(EMPTY_DOCUMENT_FILTERS);
   const [page, setPage] = useState(0);
 
@@ -46,6 +48,7 @@ export function DocumentsListPage() {
             ? "Sem resultados para este filtro."
             : "Ainda não submeteste nenhum documento. Vai a “Submeter” para o fazer."
         }
+        onRowClick={(id) => navigate(`/review/${id}`)}
       />
     </Stack>
   );

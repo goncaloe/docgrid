@@ -1,12 +1,14 @@
 import { Stack, Title } from "@mantine/core";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { listReviewQueue } from "../../api/documents";
 import { DocumentsTable } from "../documents/DocumentsTable";
 import { REVIEW_QUEUE_POLL_INTERVAL_MS } from "./reviewQueuePolling";
 
 export function ReviewQueuePage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(0);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -26,6 +28,7 @@ export function ReviewQueuePage() {
         onRetry={() => void refetch()}
         onPageChange={setPage}
         emptyMessage="Não há documentos à espera de revisão."
+        onRowClick={(id) => navigate(`/review/${id}`)}
       />
     </Stack>
   );
