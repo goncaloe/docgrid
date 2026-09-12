@@ -30,7 +30,7 @@ const sampleDocument: DocumentSummaryResponse = {
   supplierTaxId: "509000000",
   invoiceNumber: "FT 2026/1",
   issueDate: "2026-08-20",
-  totalAmount: "123.45",
+  totalAmount: 123.45,
   currency: "EUR",
   createdAt: "2026-08-20T10:00:00Z",
 };

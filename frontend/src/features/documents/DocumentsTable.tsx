@@ -10,7 +10,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-PT");
 
 function formatAmount(doc: DocumentSummaryResponse): string {
   if (doc.totalAmount === null) return "—";
-  const amount = currencyFormatter.format(Number(doc.totalAmount));
+  const amount = currencyFormatter.format(doc.totalAmount);
   return doc.currency !== null ? `${amount} ${doc.currency}` : amount;
 }
 

@@ -3,6 +3,10 @@
  * `backend/src/main/java/com/docgrid/{auth,document}/dto/`. Única fonte no frontend —
  * ninguém redeclara estas formas ad-hoc. Atualiza este ficheiro sempre que um DTO do
  * backend mudar.
+ *
+ * Correspondência de tipos Java → JSON: `BigDecimal` serializa como **número** (montantes,
+ * taxas, grau de confiança), `Instant` e `LocalDate` como string ISO, `UUID` e `URI` como
+ * string.
  */
 
 export type UserRole = "EMPLOYEE" | "FINANCE" | "MANAGER" | "ADMIN";
@@ -66,7 +70,7 @@ export interface DocumentSummaryResponse {
   supplierTaxId: string | null;
   invoiceNumber: string | null;
   issueDate: string | null;
-  totalAmount: string | null;
+  totalAmount: number | null;
   currency: string | null;
   createdAt: string;
 }
@@ -74,7 +78,8 @@ export interface DocumentSummaryResponse {
 export interface ExtractedFieldResponse {
   fieldName: ExtractedFieldName;
   value: string;
-  confidence: string | null;
+  /** Entre 0 e 1. `null` num campo corrigido à mão — a origem `HUMAN` já diz que não há incerteza. */
+  confidence: number | null;
   source: FieldSource;
 }
 
@@ -92,10 +97,10 @@ export interface DocumentDetailResponse {
   supplierTaxId: string | null;
   invoiceNumber: string | null;
   issueDate: string | null;
-  netAmount: string | null;
-  vatAmount: string | null;
-  vatRate: string | null;
-  totalAmount: string | null;
+  netAmount: number | null;
+  vatAmount: number | null;
+  vatRate: number | null;
+  totalAmount: number | null;
   currency: string | null;
   createdAt: string;
   updatedAt: string;
