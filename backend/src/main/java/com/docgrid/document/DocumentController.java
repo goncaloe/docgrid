@@ -123,7 +123,7 @@ class DocumentController {
      */
     private Document findOwnedDocument(UUID id) {
         Document document = documents
-                .findByIdAndOrganizationId(id, currentUser.currentOrganizationId())
+                .findDetailByIdAndOrganizationId(id, currentUser.currentOrganizationId())
                 .orElseThrow(() -> new DocumentNotFoundException(id));
         if (currentUser.currentRole() == UserRole.EMPLOYEE
                 && !document.getSubmittedBy().equals(currentUser.currentUserId())) {

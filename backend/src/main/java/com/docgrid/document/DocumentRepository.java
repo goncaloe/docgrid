@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +23,19 @@ interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     /** Ler um documento pelo id sem o filtro da organização seria uma fuga de dados. */
     Optional<Document> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
+    /**
+     * O mesmo documento, com os campos extraídos já carregados.
+     *
+     * <p>O detalhe é servido fora de transação — {@code DocumentController} não abre
+     * nenhuma — e {@code DocumentResponseMapper.toDetail} percorre
+     * {@link Document#getExtractedFields()}, que é {@code LAZY}. Sem este {@code EntityGraph}
+     * a sessão já fechou quando o mapper lá chega e o pedido termina em
+     * {@code LazyInitializationException}. Método à parte de propósito: quem aprova ou
+     * rejeita não precisa dos campos e continua a usar a consulta simples acima.
+     */
+    @EntityGraph(attributePaths = "extractedFields")
+    Optional<Document> findDetailByIdAndOrganizationId(UUID id, UUID organizationId);
 
     /** O worker parte da chave do S3 que veio na mensagem (etapa 03). */
     Optional<Document> findByStorageKey(String storageKey);
