@@ -41,57 +41,10 @@ if (typeof window.ResizeObserver === "undefined") {
   Object.defineProperty(window, "ResizeObserver", { writable: true, value: FakeResizeObserver });
 }
 
-// jsdom não implementa scrollIntoView, usado pelo Select/Combobox do Mantine para
-// posicionar a opção destacada — sem isto, cada abertura degrada para segundos de trabalho.
+// jsdom não implementa scrollIntoView, que o Combobox do Mantine chama ao destacar uma opção.
 if (typeof window.HTMLElement.prototype.scrollIntoView !== "function") {
   window.HTMLElement.prototype.scrollIntoView = () => undefined;
 }
-
-// jsdom também não implementa requestAnimationFrame nem IntersectionObserver. O
-// posicionamento do Combobox (floating-ui, usado pelo Select) recorre a um destes para
-// saber quando parar de reajustar a posição; sem eles, cai num loop de setTimeout que
-// nunca termina e cada teste com um Select demora dezenas de segundos.
-if (typeof window.requestAnimationFrame !== "function") {
-  window.requestAnimationFrame = (callback: FrameRequestCallback): number =>
-    window.setTimeout(() => callback(Date.now()), 16);
-  window.cancelAnimationFrame = (handle: number): void => window.clearTimeout(handle);
-}
-
-class FakeIntersectionObserver {
-  observe(): void {
-    // no-op
-  }
-  unobserve(): void {
-    // no-op
-  }
-  disconnect(): void {
-    // no-op
-  }
-  takeRecords(): IntersectionObserverEntry[] {
-    return [];
-  }
-}
-
-if (typeof window.IntersectionObserver === "undefined") {
-  Object.defineProperty(window, "IntersectionObserver", { writable: true, value: FakeIntersectionObserver });
-}
-
-// jsdom devolve sempre um retangulo a zero; o floating-ui (posicionamento do Combobox)
-// pode entrar num ciclo de reajuste contínuo ao tentar posicionar um elemento com
-// tamanho zero. Um valor fixo não nulo evita esse ciclo.
-window.HTMLElement.prototype.getBoundingClientRect = () => ({
-  width: 100,
-  height: 40,
-  top: 0,
-  left: 0,
-  right: 100,
-  bottom: 40,
-  x: 0,
-  y: 0,
-  toJSON() {
-    return this;
-  },
-});
 
 export const server = setupServer(...handlers);
 

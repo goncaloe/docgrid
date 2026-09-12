@@ -43,6 +43,10 @@ export function DocumentFilters({ value, onChange }: DocumentFiltersProps) {
         data={STATUS_OPTIONS}
         value={value.status}
         onChange={(status) => onChange({ ...value, status: status as DocumentStatus | null })}
+        // Por omissão o Combobox do Mantine mantém o dropdown montado com a lista fechada.
+        // Não serve de nada aqui — e em jsdom essa árvore montada nunca assenta, o que
+        // levava cada teste com este ecrã a dezenas de segundos.
+        comboboxProps={{ keepMounted: false }}
         w={180}
       />
       <TextInput

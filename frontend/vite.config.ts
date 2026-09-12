@@ -17,9 +17,5 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: true,
-    // O Select/Combobox do Mantine demora ~15-20s a assentar em jsdom (floating-ui
-    // sem requestAnimationFrame/IntersectionObserver nativos do browser) — margem
-    // generosa em vez de otimizar um ambiente que não é o de produção.
-    testTimeout: 60_000,
   },
 });
