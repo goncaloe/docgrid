@@ -84,25 +84,44 @@ export function ReviewPage() {
     },
   });
 
+  const anyModalOpen = rejectModalOpened || duplicateConfirmOpened;
+
+  /**
+   * Pedir a aprovação. Um duplicado passa primeiro pelo aviso, e é preciso confirmá-lo
+   * no próprio aviso (`confirmApprove`) — não basta o aviso estar aberto. Sem essa
+   * distinção, dois `Ctrl+Enter` seguidos aprovavam um duplicado sem ninguém ler nada,
+   * que é exatamente o reflexo de quem despacha uma fila à pressa.
+   */
   function handleApprove() {
     if (data === undefined || !EDITABLE_STATUSES.has(data.status)) {
       return;
     }
-    if (data.duplicateOfDocumentId !== null && !duplicateConfirmOpened) {
+    if (data.duplicateOfDocumentId !== null) {
       setDuplicateConfirmOpened(true);
       return;
     }
+    approveMutation.mutate();
+  }
+
+  /** Só o botão do aviso de duplicado chega aqui: é esta a confirmação explícita. */
+  function confirmApprove() {
     setDuplicateConfirmOpened(false);
     approveMutation.mutate();
   }
 
   // `@mantine/hooks` normaliza "Escape"/"Esc" para "esc" só do lado do evento, não do
   // combo pedido: tem de se escrever a combinação em minúsculas para bater certo.
+  //
+  // Com um modal aberto, os atalhos calam-se: o `Modal` do Mantine já trata o `Escape`
+  // como "fechar", e sem esta guarda o mesmo evento fechava o modal e voltava a abri-lo
+  // aqui — a rejeição ficava presa, sem saída pelo teclado.
   useHotkeys(
-    [
-      ["mod+Enter", handleApprove],
-      ["esc", () => setRejectModalOpened(true)],
-    ],
+    anyModalOpen
+      ? []
+      : [
+          ["mod+Enter", handleApprove],
+          ["esc", () => setRejectModalOpened(true)],
+        ],
     [],
   );
 
@@ -161,7 +180,7 @@ export function ReviewPage() {
       )}
 
       {data.duplicateOfDocumentId !== null && (
-        <DuplicateCard duplicateOfDocumentId={data.duplicateOfDocumentId} validationResults={data.validationResults} />
+        <DuplicateCard duplicateOfDocumentId={data.duplicateOfDocumentId} />
       )}
 
       <Grid>
@@ -219,7 +238,7 @@ export function ReviewPage() {
           >
             Cancelar
           </Button>
-          <Button color="orange" onClick={handleApprove}>
+          <Button color="orange" onClick={confirmApprove}>
             Aprovar mesmo assim
           </Button>
         </Group>
