@@ -1,6 +1,6 @@
 # Handoff — Etapa 07: Frontend base
 
-**Data:** 2026-09-12 · **Sessão:** #8 · **Estado:** completa
+**Data:** 2026-09-12 · **Sessão:** #8 (+ revisão na #9) · **Estado:** completa
 
 ## Contexto de arranque
 
@@ -21,9 +21,7 @@ para o S3, seguindo a ADR-0001 (Mantine + TanStack Table, sem Tailwind).
 - **Proxy do Vite** (`vite.config.ts`): `/api` → `http://localhost:8080` em desenvolvimento,
   para não precisar de CORS no Spring Security.
 - **Vitest + Testing Library + MSW** para testes, com `src/test/setup.ts` a polyfillar o que
-  o jsdom não tem (`matchMedia`, `ResizeObserver`, `IntersectionObserver`,
-  `scrollIntoView`, `getBoundingClientRect`) — ver Armadilhas, é o ponto mais delicado desta
-  sessão.
+  o jsdom não tem (`matchMedia`, `ResizeObserver`, `scrollIntoView`).
 
 ### Cliente de API e autenticação — `src/api/`, `src/auth/`
 
@@ -56,12 +54,15 @@ para o S3, seguindo a ADR-0001 (Mantine + TanStack Table, sem Tailwind).
   algum documento em `UPLOADED`/`PROCESSING` na página visível.
 - **`features/review/ReviewQueuePage.tsx`** — página própria, `FINANCE`/`MANAGER`/`ADMIN`,
   reutiliza `DocumentsTable` sobre `GET /api/documents/review-queue`. Só visibilidade;
-  aprovar/rejeitar/corrigir é etapa 08.
+  aprovar/rejeitar/corrigir é etapa 08. Polling constante a 15 s
+  (`features/review/reviewQueuePolling.ts`), partilhado com o indicador da navegação.
 - **`features/upload/`** — `Dropzone` do Mantine para múltiplos ficheiros;
   `useDocumentUpload` pede `upload-url` e depois faz `PUT` para o S3 via `XMLHttpRequest`
   (não `fetch`, para ter `xhr.upload.onprogress`), com o `XhrFactory` injetável para os
   testes. Validação de tipo/tamanho no cliente espelha `docgrid.upload` (não há endpoint
-  para a consultar); a falha de um ficheiro não trava os outros.
+  para a consultar); a falha de um ficheiro não trava os outros. Um ficheiro recusado pelo
+  `Dropzone` entra na mesma lista com o motivo (`onReject`), e cada lote termina com um
+  aviso do `@mantine/notifications` e a invalidação da query `["documents"]`.
 - **`layout/AppShellLayout.tsx`** — `AppShell` do Mantine, navbar colapsável em telemóvel
   (`Burger`), cabeçalho com email/papel e logout, `ReviewQueueBadge` visível só aos papéis
   que podem chegar à fila.
@@ -99,10 +100,11 @@ Nenhum ADR novo escrito — as decisões desta etapa já estavam justificadas na
 cd frontend
 npm install
 npx tsc -b --noEmit      # sem erros
-npx eslint .              # 0 erros, 3 avisos de react-refresh (aceitáveis)
+npx eslint .              # 0 erros, 2 avisos de react-refresh (aceitáveis)
 npx vitest run
-# Test Files  9 passed (9)
-#      Tests  23 passed (23)
+# Test Files  10 passed (10)
+#      Tests  25 passed (25)
+#   Duration  ~4 s
 ```
 
 Fluxo manual, com o backend a correr (`npm run up` na raiz, noutro terminal):
@@ -120,9 +122,8 @@ cd frontend && npm run dev
    permissão", sem pedido à API.
 5. DevTools em viewport de telemóvel — navbar colapsa num `Burger`.
 
-**Não executado nesta sessão com o browser real** — os passos acima descrevem o fluxo
-verificável; o que foi de facto corrido foram os testes automatizados e a verificação de
-tipos/lint. Recomenda-se correr manualmente antes de dar a etapa por fechada em definitivo.
+**Corrido de facto num browser na sessão #9**, com o stack todo de pé: os passos 1 a 4
+passam. O passo 5 (telemóvel) continua **por verificar** — ver "O que ficou por fazer".
 
 ## O que ficou por fazer
 
@@ -132,18 +133,25 @@ Nada bloqueia a etapa 08. Fora de âmbito por decisão:
 - **Dashboard e exportação** — etapa 09.
 - **Ecrã de registo de organização, gestão de utilizadores** — não pedido pelo briefing.
 - **CORS de produção no Terraform** — etapa 11, com a origem real do frontend implantado.
-- **Verificação manual num browser real** — só os testes automatizados correram nesta sessão.
+- **Verificação em ecrã de telemóvel** — o único critério de aceitação que continua por
+  confirmar. Na sessão #9 a extensão de browser não conseguiu reduzir o viewport (ficava
+  nos 1536 px) e não há emulação de dispositivo disponível. Faz-se à mão nas DevTools.
+- **Testes do frontend fora de `npm test` da raiz** — decisão consciente (ver Decisões),
+  mas a etapa 11 tem de os pôr no CI, ou passam a correr só por hábito de quem lembrar.
 
 ## Armadilhas para a próxima sessão
 
-1. **O Mantine `Select`/`Combobox` demora 15–20 s a assentar em jsdom**, mesmo sem abrir o
-   dropdown — é por isso que `vite.config.ts` tem `testTimeout: 60_000` e os testes de
-   `DocumentsListPage`/`App` usam um `ASYNC_TIMEOUT` de 45 s. Investigado a fundo: não é um
-   loop infinito (resolve sempre, só que tarde), muito provavelmente floating-ui a
-   reajustar posição sem `requestAnimationFrame`/`IntersectionObserver` nativos do browser.
-   Os polyfills em `src/test/setup.ts` (rAF, `IntersectionObserver`,
-   `getBoundingClientRect` fixo) não eliminaram o atraso, só o tornaram consistente — se um
-   dia a lentidão voltar a ficar pior, começar por aí, não pelos testes.
+1. **Um `Combobox` do Mantine com o dropdown montado envenena o ficheiro de teste inteiro.**
+   O `Combobox.Dropdown` fica montado com a lista fechada (`keepMounted` por omissão) e essa
+   árvore nunca assenta em jsdom: bastava um `Select` renderizado uma vez para os testes
+   seguintes do mesmo ficheiro passarem a 5 s cada. `comboboxProps={{ keepMounted: false }}`
+   resolve — 12 784 ms → 38 ms num ficheiro de dois testes, e a suite de 177 s para 4,2 s.
+   Se aparecer um `Select`, `Autocomplete` ou `MultiSelect` novo, passa-lhe a mesma opção.
+
+   *(O handoff original atribuía isto ao floating-ui sem `requestAnimationFrame`/
+   `IntersectionObserver` nativos. Estava errado, e os polyfills que daí vieram não faziam
+   nada: o jsdom do vitest já traz rAF, e removê-los não muda um milissegundo. Um `Popover`
+   fechado renderiza em 28 ms — o problema era só do `Combobox`.)*
 2. **`client.ts` guarda o access token em estado de módulo, partilhado por todos os testes
    do mesmo ficheiro.** `src/test/setup.ts` chama `clearSession()` num `afterEach` global —
    sem isto, uma sessão criada por um teste (`setSession`) vaza para o seguinte e mascara
@@ -164,9 +172,48 @@ Nada bloqueia a etapa 08. Fora de âmbito por decisão:
 - `frontend/src/features/documents/useDocuments.ts` — polling dinâmico.
 - `frontend/src/features/upload/useDocumentUpload.ts` — upload por XHR com progresso.
 - `frontend/src/test/setup.ts` — polyfills de jsdom, limpeza de sessão entre testes.
+- `frontend/src/features/review/reviewQueuePolling.ts` — intervalo da fila, num sítio só.
 - `docker/localstack/init/ready.d/docgrid-resources.sh` — CORS do bucket local.
 
+## Revisão da etapa (sessão #9)
+
+A etapa foi revista depois de fechada. O que saiu de lá, por ordem de importância:
+
+| Achado | Correção |
+| --- | --- |
+| Suite de testes a 177 s, com diagnóstico errado no handoff | `keepMounted: false` no `Select`; caem 3 polyfills inúteis e os tempos-limite inflacionados. 4,2 s |
+| Ficheiros recusados pelo `Dropzone` desapareciam sem deixar rasto (sem `onReject`) | Entram na lista com o motivo; o `validateFile`, que a interface nunca alcançava, volta a servir |
+| `@mantine/notifications` montado e nunca usado, contra a ADR-0001 | Aviso por lote no fim do upload, e a lista de documentos passa a ser invalidada |
+| Sem teste do `UploadPage` — o critério das 5 barras só estava coberto no hook | `UploadPage.test.tsx` |
+| `BigDecimal` tipado como `string` na "única fonte de tipos" | Montantes e confiança passam a `number`; correspondência Java → JSON documentada |
+| `issueDate` formatada via `new Date()` — meia-noite UTC | Data de calendário construída no fuso local |
+| Fila de revisão em polling de 4 s para sempre | 15 s, na mesma constante do indicador |
+| `/login` acessível com sessão ativa; cartão de 360 px fixo | Redireciona; largura responsiva |
+
+**Verificado num browser real** (Postgres + LocalStack + backend + Vite): preflight de CORS
+do LocalStack devolve `Access-Control-Allow-Origin: http://localhost:5173` — a política do
+bucket é honrada e **não** é preciso `EXTRA_CORS_ALLOWED_ORIGINS`; 5 PDFs dão 5 barras
+independentes e chegam ao S3; um `.docx` aparece recusado com o motivo; a lista mostra
+`123,00 EUR` e `20/08/2026`; logout e redirecionamento de `/login` funcionam; um `EMPLOYEE`
+em `/review-queue` vê "Sem permissão" e não tem sequer o link na navegação.
+
+Não confirmado: **ecrã de telemóvel** (ver "O que ficou por fazer").
+
 ## Commits
+
+Da revisão (sessão #9):
+
+```
+5c9199a refactor(frontend): remove hasStoredSession, que ninguém chamava
+9f39dd8 fix(frontend): ecrã de login com sessão ativa e em ecrã estreito
+d39ecf7 fix(frontend): polling da fila de revisão ao ritmo de quem a usa
+d1481c3 fix(frontend): data de emissão não muda de dia com o fuso horário
+d15be4a fix(frontend): montantes e confiança são números, não strings
+d85df02 fix(frontend): o upload deixa de engolir ficheiros em silêncio
+9a16419 test(frontend): corrige a lentidão dos testes com Select
+```
+
+Da implementação (sessão #8):
 
 ```
 4e1411a docs: secção de frontend no README
