@@ -1,0 +1,5 @@
+.fieldUncertain {
+  background-color: var(--mantine-color-yellow-0);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-xs);
+}

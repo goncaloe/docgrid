@@ -96,7 +96,8 @@ export interface ValidationResultResponse {
   ruleName: string;
   severity: string;
   passed: boolean;
-  message: string;
+  /** `null` quando a regra passa sem nada a assinalar. */
+  message: string | null;
 }
 
 export interface DocumentDetailResponse {
