@@ -2,17 +2,23 @@ import { Group, Paper, Progress, Stack, Text, Title } from "@mantine/core";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { IconCheck, IconFileUpload, IconUpload, IconX } from "@tabler/icons-react";
 
+import { MAX_FILE_SIZE_BYTES } from "./uploadValidation";
 import { useDocumentUpload } from "./useDocumentUpload";
 
 const ACCEPTED_TYPES = [MIME_TYPES.pdf, MIME_TYPES.jpeg, MIME_TYPES.png];
 
 export function UploadPage() {
-  const { items, uploadFiles } = useDocumentUpload();
+  const { items, uploadFiles, rejectFiles } = useDocumentUpload();
 
   return (
     <Stack gap="md">
       <Title order={2}>Submeter documentos</Title>
-      <Dropzone onDrop={uploadFiles} accept={ACCEPTED_TYPES} maxSize={10 * 1024 * 1024}>
+      <Dropzone
+        onDrop={uploadFiles}
+        onReject={rejectFiles}
+        accept={ACCEPTED_TYPES}
+        maxSize={MAX_FILE_SIZE_BYTES}
+      >
         <Group justify="center" gap="xl" mih={160} style={{ pointerEvents: "none" }}>
           <Dropzone.Accept>
             <IconUpload size={40} />

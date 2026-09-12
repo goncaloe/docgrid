@@ -3,6 +3,7 @@ import { HttpResponse, http } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { server } from "../../test/setup";
+import { queryWrapper } from "../../test/renderWithProviders";
 import { useDocumentUpload, type XhrFactory } from "./useDocumentUpload";
 
 function fakeFile(name: string, type: string, sizeBytes: number): File {
@@ -71,7 +72,7 @@ describe("useDocumentUpload", () => {
       ),
     );
 
-    const { result } = renderHook(() => useDocumentUpload(successfulXhrFactory()));
+    const { result } = renderHook(() => useDocumentUpload(successfulXhrFactory()), { wrapper: queryWrapper() });
     act(() => result.current.uploadFiles([fakeFile("fatura.pdf", "application/pdf", 1024)]));
 
     await waitFor(() => expect(result.current.items[0]?.status).toBe("done"));
@@ -79,7 +80,7 @@ describe("useDocumentUpload", () => {
   });
 
   it("um ficheiro inválido fica em erro sem pedir upload-url", async () => {
-    const { result } = renderHook(() => useDocumentUpload(successfulXhrFactory()));
+    const { result } = renderHook(() => useDocumentUpload(successfulXhrFactory()), { wrapper: queryWrapper() });
     act(() => result.current.uploadFiles([fakeFile("virus.exe", "application/x-msdownload", 1024)]));
 
     await waitFor(() => expect(result.current.items[0]?.status).toBe("error"));
@@ -106,7 +107,7 @@ describe("useDocumentUpload", () => {
       return call === 1 ? failingXhrFactory()() : successfulXhrFactory()();
     };
 
-    const { result } = renderHook(() => useDocumentUpload(mixedXhrFactory));
+    const { result } = renderHook(() => useDocumentUpload(mixedXhrFactory), { wrapper: queryWrapper() });
     act(() =>
       result.current.uploadFiles([
         fakeFile("a.pdf", "application/pdf", 1024),
