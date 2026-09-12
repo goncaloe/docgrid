@@ -81,6 +81,28 @@ class DocumentDetailTest {
                 .andExpect(jsonPath("$.fields[0].boundingBox").value(org.hamcrest.Matchers.hasSize(4)));
     }
 
+    /**
+     * Um documento por processar não tem {@code file_hash}. A consulta de duplicado por
+     * hash corre à mesma no detalhe: se tratasse o nulo como um valor a comparar, qualquer
+     * outro documento ainda por processar da organização apareceria como duplicado.
+     */
+    @Test
+    void aDocumentWithNoFileHashYetIsNobodysDuplicate() throws Exception {
+        UUID organizationId = transactions.execute(status -> AuthFixtures.organization(entityManager));
+        UUID finance = transactions.execute(status -> AuthFixtures.user(
+                entityManager, organizationId, "revisora-" + UUID.randomUUID() + "@padaria.pt", UserRole.FINANCE));
+        UUID first = transactions.execute(status -> anUploadedDocument(organizationId, finance));
+        UUID second = transactions.execute(status -> anUploadedDocument(organizationId, finance));
+
+        String token = jwt.accessToken(finance, organizationId, UserRole.FINANCE);
+        mvc.perform(get("/api/documents/" + second).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicateOfDocumentId").doesNotExist());
+        mvc.perform(get("/api/documents/" + first).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicateOfDocumentId").doesNotExist());
+    }
+
     private UUID anExtractedDocument(UUID organizationId, UUID submittedBy) {
         Document document = newDocument(organizationId, submittedBy);
         document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null);
@@ -107,6 +129,10 @@ class DocumentDetailTest {
                 new BigDecimal("23.00"),
                 new BigDecimal("123.00")));
         return documents.save(document).getId();
+    }
+
+    private UUID anUploadedDocument(UUID organizationId, UUID submittedBy) {
+        return documents.save(newDocument(organizationId, submittedBy)).getId();
     }
 
     private Document newDocument(UUID organizationId, UUID submittedBy) {

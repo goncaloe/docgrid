@@ -111,8 +111,17 @@ class DocumentValidationContextFactory {
     /**
      * O mesmo ficheiro submetido outra vez. Exclui {@code REJECTED}: depois de uma rejeição,
      * reenviar o mesmo PDF não deve ficar preso num falso duplicado eterno.
+     *
+     * <p>Um documento ainda por processar não tem hash, e a consulta derivada do Spring Data
+     * traduz um argumento nulo para {@code is null} — sem esta guarda, dois documentos
+     * acabados de submeter apareceriam um como duplicado do outro. A validação só corre
+     * depois da extração, mas {@code DocumentResponseMapper} chama isto para qualquer
+     * documento, em qualquer estado.
      */
     UUID findDuplicateFileDocumentId(Document document) {
+        if (document.getFileHash() == null) {
+            return null;
+        }
         return documents.findByOrganizationIdAndFileHash(document.getOrganizationId(), document.getFileHash()).stream()
                 .filter(other -> !other.getId().equals(document.getId()))
                 .filter(other -> other.getStatus() != DocumentStatus.REJECTED)
