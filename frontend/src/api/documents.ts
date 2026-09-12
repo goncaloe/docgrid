@@ -1,10 +1,14 @@
 import { apiFetch } from "./client";
 import type {
+  ApproveRequest,
   DocumentDetailResponse,
   DocumentListFilters,
   DocumentSummaryResponse,
+  ExtractedFieldName,
+  FieldCorrectionRequest,
   FileUrlResponse,
   PageResponse,
+  RejectRequest,
   UploadUrlRequest,
   UploadUrlResponse,
 } from "./types";
@@ -40,4 +44,19 @@ export function requestUploadUrl(request: UploadUrlRequest): Promise<UploadUrlRe
 
 export function getFileUrl(id: string): Promise<FileUrlResponse> {
   return apiFetch(`/api/documents/${id}/file-url`);
+}
+
+export function correctField(id: string, fieldName: ExtractedFieldName, value: string): Promise<void> {
+  const request: FieldCorrectionRequest = { value };
+  return apiFetch(`/api/documents/${id}/fields/${fieldName}`, { method: "PATCH", body: request });
+}
+
+export function approveDocument(id: string, category: string | null = null): Promise<void> {
+  const request: ApproveRequest = { category };
+  return apiFetch(`/api/documents/${id}/approve`, { method: "POST", body: request });
+}
+
+export function rejectDocument(id: string, reason: string): Promise<void> {
+  const request: RejectRequest = { reason };
+  return apiFetch(`/api/documents/${id}/reject`, { method: "POST", body: request });
 }

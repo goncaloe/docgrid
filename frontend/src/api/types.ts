@@ -75,12 +75,21 @@ export interface DocumentSummaryResponse {
   createdAt: string;
 }
 
+export interface PolygonPoint {
+  x: number;
+  y: number;
+}
+
 export interface ExtractedFieldResponse {
   fieldName: ExtractedFieldName;
   value: string;
   /** Entre 0 e 1. `null` num campo corrigido à mão — a origem `HUMAN` já diz que não há incerteza. */
   confidence: number | null;
   source: FieldSource;
+  /** A página onde o campo foi lido. `null` num campo corrigido à mão. */
+  page: number | null;
+  /** O polígono que cerca o campo, normalizado 0–1. `null` num campo corrigido à mão. */
+  boundingBox: PolygonPoint[] | null;
 }
 
 export interface ValidationResultResponse {
@@ -94,6 +103,9 @@ export interface DocumentDetailResponse {
   id: string;
   status: DocumentStatus;
   originalFilename: string;
+  contentType: string;
+  /** O documento aprovado com o mesmo NIF+número, ou o mesmo ficheiro; `null` sem duplicado. */
+  duplicateOfDocumentId: string | null;
   supplierTaxId: string | null;
   invoiceNumber: string | null;
   issueDate: string | null;
@@ -134,6 +146,19 @@ export interface UploadUrlResponse {
 export interface FileUrlResponse {
   url: string;
   expiresAt: string;
+}
+
+export interface FieldCorrectionRequest {
+  value: string;
+}
+
+/** @param category escolhida pelo revisor; `null` se não escolheu nenhuma */
+export interface ApproveRequest {
+  category: string | null;
+}
+
+export interface RejectRequest {
+  reason: string;
 }
 
 export interface DocumentListFilters {
