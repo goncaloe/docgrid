@@ -4,8 +4,7 @@ import { useState } from "react";
 
 import { listReviewQueue } from "../../api/documents";
 import { DocumentsTable } from "../documents/DocumentsTable";
-
-const POLL_INTERVAL_MS = 4_000;
+import { REVIEW_QUEUE_POLL_INTERVAL_MS } from "./reviewQueuePolling";
 
 export function ReviewQueuePage() {
   const [page, setPage] = useState(0);
@@ -14,7 +13,7 @@ export function ReviewQueuePage() {
     queryKey: ["review-queue", page],
     queryFn: () => listReviewQueue(page),
     placeholderData: keepPreviousData,
-    refetchInterval: POLL_INTERVAL_MS,
+    refetchInterval: REVIEW_QUEUE_POLL_INTERVAL_MS,
   });
 
   return (
