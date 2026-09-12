@@ -1,5 +1,7 @@
 package com.docgrid.shared;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,6 +23,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DomainException.class)
     ProblemDetail onDomainException(DomainException exception) {
@@ -53,8 +57,15 @@ class GlobalExceptionHandler {
                 "Valor inválido para \"%s\": %s".formatted(exception.getName(), exception.getValue()));
     }
 
+    /**
+     * O cliente continua a receber só "Erro interno" — nada do que correu mal por dentro
+     * atravessa a fronteira. Mas fica registado do lado do servidor: sem isto, um 500 não
+     * deixava rasto nenhum no log e a única forma de saber a causa era reproduzi-lo com o
+     * depurador ligado.
+     */
     @ExceptionHandler(Exception.class)
     ProblemDetail onUnexpected(Exception exception) {
+        log.error("Erro não tratado a servir o pedido", exception);
         return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
     }
 }
