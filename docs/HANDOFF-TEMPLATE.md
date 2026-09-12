@@ -12,6 +12,11 @@
 
 ADRs escritos: `docs/adr/NNNN-*.md`
 
+## Desvios ao plano
+Plano seguido: `docs/plans/STAGE-NN-plano.md` (ou "sem plano em disco")
+- <onde o código se afastou do plano, e porquê>
+
+
 ## Como verificar
 Comandos exatos que provam que a etapa funciona:
 ```bash
