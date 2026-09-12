@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { login as loginRequest, logout as logoutRequest } from "../api/auth";
-import { getAccessToken, getStoredRefreshToken, getStoredUserEmail, initializeSession, onSessionChange } from "../api/client";
+import { getAccessToken, getStoredUserEmail, initializeSession, onSessionChange } from "../api/client";
 import type { LoginRequest, UserRole } from "../api/types";
 import { decodeJwt } from "./decodeJwt";
 
@@ -74,8 +74,4 @@ export function useAuth(): AuthContextValue {
     throw new Error("useAuth tem de ser usado dentro de AuthProvider");
   }
   return context;
-}
-
-export function hasStoredSession(): boolean {
-  return getStoredRefreshToken() !== null;
 }
