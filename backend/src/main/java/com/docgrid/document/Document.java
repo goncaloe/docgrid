@@ -95,6 +95,10 @@ class Document extends BaseEntity {
     @Column(name = "category", length = 50)
     private String category;
 
+    /** Preenchido quando o documento é incluído numa exportação mensal (etapa 09). */
+    @Column(name = "export_id")
+    private UUID exportId;
+
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ExtractedField> extractedFields = new ArrayList<>();
 
@@ -183,6 +187,18 @@ class Document extends BaseEntity {
 
     List<ExtractedField> getExtractedFields() {
         return Collections.unmodifiableList(extractedFields);
+    }
+
+    /**
+     * Liga o documento à exportação em que foi fechado.
+     *
+     * <p>Chamado depois de {@link #transitionTo(DocumentStatus, Actor, String)} com
+     * {@code EXPORTED}, dentro da mesma transação. O estado já mudou; esta associação
+     * é o que permite ao agregador de totais (etapa 09) encontrar os documentos de
+     * cada exportação sem percorrer o CSV.
+     */
+    void markExported(UUID exportId) {
+        this.exportId = Objects.requireNonNull(exportId, "exportId");
     }
 
     /** Preenchido quando o ficheiro chega ao S3 (etapa 02). */
