@@ -91,6 +91,10 @@ class Document extends BaseEntity {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency = "EUR";
 
+    /** Categoria escolhida pelo revisor. Projeção: a verdade está em extracted_fields. */
+    @Column(name = "category", length = 50)
+    private String category;
+
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<ExtractedField> extractedFields = new ArrayList<>();
 
@@ -166,6 +170,11 @@ class Document extends BaseEntity {
         this.vatAmount = fields.vatAmount();
         this.vatRate = fields.vatRate();
         this.totalAmount = fields.totalAmount();
+    }
+
+    /** Escreve a categoria na projeção. Corresponde a uma correção do mesmo campo. */
+    void categoriseAs(String category) {
+        this.category = category;
     }
 
     void addExtractedField(ExtractedField field) {
@@ -244,5 +253,9 @@ class Document extends BaseEntity {
 
     String getCurrency() {
         return currency;
+    }
+
+    String getCategory() {
+        return category;
     }
 }

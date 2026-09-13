@@ -98,6 +98,21 @@ class FieldCorrectionServiceTest {
     }
 
     @Test
+    void correctingCategoryProjectsToDocumentColumn() {
+        UUID documentId = anExtractedDocument();
+
+        corrections.correct(
+                documentId, organizationId, ExtractedFieldName.CATEGORY, "Alimentação", Actor.user(submitterId));
+
+        assertThat(documents.findById(documentId).orElseThrow().getCategory()).isEqualTo("Alimentação");
+
+        ExtractedField field = fields.findByDocumentIdAndFieldName(documentId, ExtractedFieldName.CATEGORY)
+                .orElseThrow();
+        assertThat(field.getSource()).isEqualTo(FieldSource.HUMAN);
+        assertThat(field.getConfidence()).isNull();
+    }
+
+    @Test
     void refusesToCorrectAnApprovedDocument() {
         UUID documentId = anExtractedDocument();
         Document document = documents.findById(documentId).orElseThrow();

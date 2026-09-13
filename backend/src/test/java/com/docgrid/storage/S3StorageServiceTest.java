@@ -122,6 +122,16 @@ class S3StorageServiceTest {
     }
 
     @Test
+    void putStoresObjectAndDownloadReturnsSameBytes() {
+        String key = "org/a/2026/09/csv/export-2026-08.csv";
+        byte[] body = "conteúdo gerado pelo servidor".getBytes(UTF_8);
+
+        storage.put(key, "text/csv; charset=utf-8", body);
+
+        assertThat(storage.download(key).content()).isEqualTo(body);
+    }
+
+    @Test
     void downloadOfAMissingObjectIsADistinctPermanentError() {
         assertThatThrownBy(() -> storage.download("org/a/2026/09/nunca-subiu.pdf"))
                 .isInstanceOf(NoSuchObjectException.class)

@@ -146,6 +146,36 @@ class DocumentApprovalServiceTest {
     }
 
     @Test
+    void approveWithCategorySetsColumnAndExtractedField() {
+        UUID documentId = anExtractedDocumentWithUniqueSupplier("Cantina do Zé, Lda.");
+
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, "TesteDashboard09");
+
+        assertThat(documents.findById(documentId).orElseThrow().getCategory()).isEqualTo("TesteDashboard09");
+
+        ExtractedField categoryField = fields.findByDocumentIdAndFieldName(documentId, ExtractedFieldName.CATEGORY)
+                .orElseThrow();
+        assertThat(categoryField.getValueText()).isEqualTo("TesteDashboard09");
+        assertThat(categoryField.getSource()).isEqualTo(FieldSource.HUMAN);
+        assertThat(categoryField.getConfidence()).isNull();
+
+        List<DocumentEvent> history = events.findByDocumentIdOrderByOccurredAtAscIdAsc(documentId);
+        assertThat(history)
+                .anySatisfy(event -> assertThat(event.getEventType()).isEqualTo(DocumentEventType.FIELD_CORRECTED));
+    }
+
+    @Test
+    void approveWithoutCategoryDoesNotTouchCategoryColumn() {
+        UUID documentId = anExtractedDocumentWithUniqueSupplier("Cantina do Zé, Lda.");
+
+        approvals.approve(documentId, organizationId, Actor.system(), UserRole.FINANCE, null);
+
+        assertThat(documents.findById(documentId).orElseThrow().getCategory()).isNull();
+        assertThat(fields.findByDocumentIdAndFieldName(documentId, ExtractedFieldName.CATEGORY))
+                .isNotPresent();
+    }
+
+    @Test
     void refusesToApproveADocumentFromAnotherOrganization() {
         UUID documentId = anExtractedDocument(null);
         UUID otherOrganizationId = UUID.randomUUID();
@@ -223,6 +253,43 @@ class DocumentApprovalServiceTest {
                 new BigDecimal("23.00"),
                 new BigDecimal("2460.00")));
         return documents.save(document).getId();
+    }
+
+    /** Um documento já extraído, com NIF fixo e, opcionalmente, o nome do fornecedor. */
+    private UUID anExtractedDocumentWithUniqueSupplier(String supplierName) {
+        Document document = new Document(
+                organizationId,
+                submitterId,
+                "org/%s/2026/09/%s.pdf".formatted(organizationId, UUID.randomUUID()),
+                "fatura.pdf",
+                "application/pdf");
+        document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null);
+        document.transitionTo(DocumentStatus.EXTRACTED, Actor.system(), null);
+        String uniqueTaxId = "9" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        document.projectInvoiceFields(new InvoiceFields(
+                supplierName,
+                uniqueTaxId,
+                "FT 2026/1",
+                LocalDate.of(2026, 8, 20),
+                new BigDecimal("100.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("23.00"),
+                new BigDecimal("123.00")));
+        document = documents.save(document);
+        if (supplierName != null) {
+            fields.save(ExtractedField.readByMachine(
+                    document,
+                    ExtractedFieldName.SUPPLIER_NAME,
+                    supplierName,
+                    new BigDecimal("0.95"),
+                    new FieldGeometry(
+                            1,
+                            List.of(
+                                    new FieldGeometry.Point(0.1, 0.1),
+                                    new FieldGeometry.Point(0.4, 0.1),
+                                    new FieldGeometry.Point(0.4, 0.2)))));
+        }
+        return document.getId();
     }
 
     /** Um documento já extraído, com NIF fixo e, opcionalmente, o nome do fornecedor. */

@@ -5,10 +5,12 @@ import java.time.Duration;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -86,6 +88,17 @@ class S3StorageService implements StorageService {
         } catch (NoSuchKeyException e) {
             throw new NoSuchObjectException(key);
         }
+    }
+
+    @Override
+    public void put(String key, String contentType, byte[] content) {
+        s3.putObject(
+                PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .contentType(contentType)
+                        .build(),
+                RequestBody.fromBytes(content));
     }
 
     /** Um nome de ficheiro não pode partir o cabeçalho {@code Content-Disposition}. */

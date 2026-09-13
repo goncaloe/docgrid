@@ -74,6 +74,15 @@ public class FieldCorrectionService {
 
         document.projectInvoiceFields(projectFromCurrentFields(document));
 
+        // Projetar também a categoria a partir dos campos atuais (etapa 09), para os
+        // dois caminhos de escrita (correção direta e aprovação com categoria) não divergirem.
+        String category = fields.findByDocumentIdAndFieldName(documentId, ExtractedFieldName.CATEGORY)
+                .map(ExtractedField::getValueText)
+                .orElse(null);
+        if (category != null) {
+            document.categoriseAs(category);
+        }
+
         ValidationSummary summary = validationEngine.validate(
                 validationContexts.build(document, DocumentValidationContextFactory.currentFieldConfidences(document)));
         DocumentStatus target = summary.requiresReview() ? DocumentStatus.NEEDS_REVIEW : DocumentStatus.EXTRACTED;

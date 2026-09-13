@@ -2,6 +2,7 @@ package com.docgrid.document;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -66,6 +67,27 @@ public class DocumentApprovalService {
         if (category != null && document.getSupplierTaxId() != null) {
             supplierApprovals.recordApproval(
                     document.getOrganizationId(), document.getSupplierTaxId(), supplierName(document), category);
+        }
+
+        // Gravar a categoria na projeção e nos campos extraídos, com evento de correção
+        // se o valor mudou (inclusive de nulo para um valor: antes não estava decidida).
+        if (category != null) {
+            ExtractedField existing = fields.findByDocumentIdAndFieldName(documentId, ExtractedFieldName.CATEGORY)
+                    .orElse(null);
+            String oldCategory = existing != null ? existing.getValueText() : null;
+
+            document.categoriseAs(category);
+
+            if (existing == null) {
+                ExtractedField.writtenByHuman(document, ExtractedFieldName.CATEGORY, category);
+            } else if (!category.equals(oldCategory)) {
+                existing.correctTo(category);
+            }
+
+            if (!Objects.equals(oldCategory, category)) {
+                events.save(DocumentEvent.fieldCorrected(
+                        documentId, ExtractedFieldName.CATEGORY, oldCategory, category, actor));
+            }
         }
     }
 

@@ -38,4 +38,10 @@ public interface StorageService {
      *     uma lentidão eventual: o S3 é fortemente consistente desde 2020
      */
     StoredObject download(String key);
+
+    /**
+     * Escreve um objeto nesta chave. Usa-se para ficheiros gerados pelo servidor
+     * (etapa 09: exportação CSV).
+     */
+    void put(String key, String contentType, byte[] content);
 }
