@@ -193,5 +193,11 @@ class DocumentUploadServiceTest {
         public StoredObject download(String key) {
             throw new NoSuchObjectException(key);
         }
+
+        @Override
+        public void put(String key, String contentType, byte[] content) {
+            this.key = key;
+            this.contentType = contentType;
+        }
     }
 }
