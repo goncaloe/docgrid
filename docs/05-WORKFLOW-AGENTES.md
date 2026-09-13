@@ -200,7 +200,7 @@ Se um dia quiseres comandos nativos noutra ferramenta, cria o invólucro no form
 (`.gemini/commands/*.toml`, `.github/prompts/*.prompt.md`, uma regra `.cursor/rules/*.mdc`)
 apontando para o mesmo ficheiro em `.agents/prompts/`. Nunca copies o procedimento para lá.
 
-## Apêndice C — pi
+## Apêndice C — pi / oh-my-pi
 
 Ficheiro de instruções: `AGENTS.md`, lido nativamente, sem configuração. As skills do
 projeto vivem em `.agents/skills/` — localização neutra que o pi descobre nativamente —
@@ -210,18 +210,18 @@ Comandos do projeto: `/skill:arrancar-etapa 03`, `/skill:implementar-etapa 03` e
 `/skill:handoff 03`.
 
 O pi tem modo de planeamento (plan mode), equivalente ao `/plan` do Claude Code: nada é
-escrito em disco até o plano ser aprovado. Não há ciclo Shift+Tab de modos.
+escrito em disco até o plano ser aprovado (alternar com `Alt+Shift+P`).
 
 | Comando | Quando |
 | --- | --- |
 | `/model` | Trocar de modelo (ex.: modelos OpenRouter); Ctrl+S no seletor guarda o predefinido |
-| `/thinking` | Ajustar o esforço de raciocínio (equivalente a `/effort` do Claude) |
+| `Shift+Tab` | Ciclar o esforço de raciocínio (equivalente a `/effort` do Claude); `--thinking` no arranque |
 | `/compact` | Resumir o contexto a meio de uma etapa |
 | `/new` | Sessão limpa: entre planear e implementar, e entre etapas depois do handoff |
-| `/diff` | Rever o diff antes do commit (template em `.pi/prompts/`) |
+| `/diff` | Rever o diff antes do commit (template em `.agents/commands/`, lido pelo oh-my-pi) |
 | `/code-review` | Revisão crítica das alterações antes do commit |
 | `/security-review` | Revisão de segurança nas etapas 02, 06 e 11 |
-| `/reload` | Recarregar skills e prompts sem reiniciar |
+| `/reload-plugins` | Recarregar skills, comandos e prompts sem reiniciar |
 
 O plano faz-se com o modelo mais capaz, a implementação com o rápido. Para o ciclo em duas
 sessões:
@@ -236,7 +236,7 @@ plan mode                           /skill:implementar-etapa 03
 /new
 ```
 
-Duas notas próprias do pi. O `/reload` é preciso depois de mexeres numa skill ou num
+Duas notas próprias do oh-my-pi. O `/reload-plugins` é preciso depois de mexeres numa skill ou num
 procedimento — a sessão em curso não os relê sozinha. E se trocares de modelo com `/model`
 sem abrir sessão nova, o contexto da discussão de planeamento vai com ele: é a variante de
 uma sessão só, que serve as etapas 07, 08 e 12.
