@@ -5,6 +5,7 @@ import { RequireRole } from "./auth/RequireRole";
 import { LoginPage } from "./features/auth/LoginPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { DocumentsListPage } from "./features/documents/DocumentsListPage";
+import { ExportsPage } from "./features/exports/ExportsPage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { ReviewQueuePage } from "./features/review/ReviewQueuePage";
 import { UploadPage } from "./features/upload/UploadPage";
@@ -43,6 +44,18 @@ export function App() {
             <AppShellLayout>
               <RequireRole allowed={REVIEW_ROLES}>
                 <DashboardPage />
+              </RequireRole>
+            </AppShellLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/exports"
+        element={
+          <RequireAuth>
+            <AppShellLayout>
+              <RequireRole allowed={REVIEW_ROLES}>
+                <ExportsPage />
               </RequireRole>
             </AppShellLayout>
           </RequireAuth>

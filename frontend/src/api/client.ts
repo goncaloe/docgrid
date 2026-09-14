@@ -138,6 +138,12 @@ interface ApiFetchOptions {
   method?: string;
   body?: unknown;
   signal?: AbortSignal;
+  /**
+   * Recolhe o estado HTTP da resposta final (depois da nova tentativa de refresh, se a
+   * houve). Útil quando o significado da resposta depende do status — p.ex. um POST que
+   * devolve 201 quando cria e 200 quando já existia.
+   */
+  onStatus?: (status: number) => void;
 }
 
 /**
@@ -148,6 +154,7 @@ interface ApiFetchOptions {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const response = await performFetch(path, options, accessToken);
   if (response.status !== 401) {
+    options.onStatus?.(response.status);
     return parseResponse<T>(response);
   }
   const refreshedToken = await refreshSession();
@@ -155,6 +162,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(401, null);
   }
   const retried = await performFetch(path, options, refreshedToken);
+  options.onStatus?.(retried.status);
   return parseResponse<T>(retried);
 }
 
