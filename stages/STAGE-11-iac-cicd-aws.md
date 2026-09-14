@@ -45,6 +45,7 @@ Multi-região, auto-scaling elaborado, blue/green. Menciona como evolução.
 - [ ] Existe um URL público a funcionar
 - [ ] Nenhum segredo no repositório (confirmado com uma ferramenta de deteção)
 - [ ] Alerta de orçamento ativo
+- [ ] Revisão de segurança feita e as observações tratadas
 
 ## Esforço estimado
-2 a 3 sessões (rede → serviços → CI/CD, uma por sessão)
+2 a 3 sessões (rede → serviços → CI/CD, uma por sessão) · revisão de segurança obrigatória

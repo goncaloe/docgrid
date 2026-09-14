@@ -46,8 +46,11 @@ só o que é próprio dela (comandos, modos, atalhos). Se puseres uma regra de p
 de um ficheiro de ferramenta, duas semanas depois tens duas versões da mesma regra a
 contradizerem-se — e nunca sabes qual é que o agente leu.
 
-Os ficheiros de agente não estão versionados (ver `.gitignore`): são configuração da máquina
-de quem desenvolve, não do produto. O método, esse, está aqui e é versionado.
+**O que é versionado.** `AGENTS.md`, os procedimentos em `.agents/` e os invólucros das duas
+ferramentas em uso (`.claude/skills/`, e `.agents/` para o oh-my-pi) estão no repositório: são
+o método, e o método faz parte do que este projeto demonstra. Fora ficam os ficheiros das
+ferramentas que não se usam aqui (`.cursor/`, `.codex/`, `GEMINI.md`) e a configuração de
+máquina (`.pi/`) — esses são de quem desenvolve, não do produto.
 
 ## Os procedimentos deste projeto
 
@@ -62,17 +65,18 @@ Se a tua ferramenta tiver comandos próprios, eles são invólucros finos destes
 se não tiver, dizes-lhe simplesmente: *"segue `.agents/prompts/arrancar-etapa.md` para a
 etapa 03"*. O resultado é o mesmo.
 
-## Modelo e esforço
+## Como abrir cada etapa
 
-Quase todas as ferramentas deixam escolher entre um modelo mais forte e um mais rápido, e
-algumas deixam ajustar o esforço de raciocínio. Sugestão para este projeto:
+Três decisões — uma ou duas sessões, que modelo, que esforço de raciocínio — e seguem todas
+os mesmos grupos de etapas. Por isso vivem numa tabela só: se a consultares para uma, já
+tens as outras duas.
 
-| Etapa | Modelo | Esforço |
-| --- | --- | --- |
-| 01, 03, 05, 11 (design difícil) | o mais capaz disponível | alto |
-| 00, 02, 04, 06, 09, 10 (implementação normal) | o rápido | médio |
-| 07, 08 (frontend, muita iteração visual) | o rápido | médio |
-| 12 (escrita, README, diagramas) | o mais capaz | médio |
+| Etapa | Caminho | Modelo · esforço | Porquê |
+| --- | --- | --- | --- |
+| 01, 03, 05, 11 (design difícil) | duas sessões | forte/alto a planear, rápido/médio a implementar | as decisões são caras de reverter; o plano é onde está o valor |
+| 00, 02, 04, 06, 09, 10 (implementação normal) | duas sessões, se a etapa for grande | o rápido, médio | ganho sobretudo de contexto livre |
+| 07, 08 (frontend, iteração visual) | uma sessão só | o rápido, médio | vês o ecrã e mudas de ideias; o plano envelhece em vinte minutos |
+| 12 (escrita, README, diagramas) | uma sessão só | o mais capaz, médio | não há plano a executar, há texto a afinar |
 
 Padrão que funciona bem: **planear com o modelo forte, implementar com o rápido.** Faz o
 plano em modo de planeamento, aprova, troca de modelo e deixa executar. Poupa quota sem
@@ -107,19 +111,64 @@ exatamente o que se teme — ele preenche as lacunas por palpite, e só se vê n
 Por isso `docs/PLAN-TEMPLATE.md` insiste em caminhos exatos, alternativas rejeitadas,
 critérios de aceitação e pontos explicitamente marcados como "para e pergunta".
 
-**Quando usar cada um:**
+Que etapas levam este caminho está na tabela de "Como abrir cada etapa", acima.
 
-| Etapa | Caminho | Porquê |
-| --- | --- | --- |
-| 01, 03, 05, 11 (design difícil) | duas sessões | as decisões são caras de reverter; o plano é onde está o valor |
-| 00, 02, 04, 06, 09, 10 | duas sessões, se a etapa for grande | ganho sobretudo de contexto livre |
-| 07, 08 (iteração visual) | uma sessão só | vês o ecrã e mudas de ideias; o plano envelhece em vinte minutos |
-| 12 (escrita) | uma sessão só | não há plano a executar, há texto a afinar |
+**O plano não é um documento morto.** Escreve-se antes de o código existir, portanto vai
+deixar de bater certo nalgum ponto — isso não é falha do plano, é a condição normal. O que
+interessa é o que acontece a seguir. Quem implementa escreve no ficheiro à medida que executa:
+a secção "Desvios durante a execução" do `PLAN-TEMPLATE.md` leva uma linha por passo que não
+saiu como estava escrito, commitada junto com o código desse passo.
+
+Sem isso, o plano descreve o código só no minuto zero e depois mente cada vez mais, enquanto
+os passos seguintes continuam a assumir que ele é verdade. E se a sessão se perder a meio,
+quem retomar tem de reconstruir pelo diff onde é que ia. Registar custa trinta segundos por
+desvio, e faz do plano a única coisa que é preciso ler para retomar — que é exatamente o
+que ele devia ser.
 
 A válvula de segurança é a regra do passo 3 de `implementar-etapa.md`: quando o plano não
 chega, quem implementa **para e pergunta** em vez de decidir. Com o modelo forte fora da
 sessão, essa regra deixa de ser boa educação e passa a ser estrutural — é o que faz o
 problema voltar para ti em vez de ser resolvido mal e em silêncio.
+
+É a peça mais valiosa do método, e pela razão menos óbvia: o modo de falhar que interessa
+evitar não é a implementação bloquear à espera de ti, é o silêncio — uma decisão que ninguém
+tomou a seguir para o commit porque ninguém sabe que ela existe. O raciocínio completo está
+no passo 3 de `implementar-etapa.md`, que é quem precisa dele. Para ti chega a consequência:
+**uma etapa que te fez duas perguntas correu melhor do que uma que não fez nenhuma.**
+
+## Medir se o método está a funcionar
+
+Tudo o que está acima é uma aposta: que separar o planeamento da execução produz código
+melhor do que pedir tudo de uma vez. Convém não ficar pela fé. O projeto já produz os dados
+para verificar — cada handoff regista os desvios ao plano, e nem todas as etapas correm da
+mesma maneira.
+
+Isso dá uma comparação natural, sem trabalho extra: as etapas que a tabela manda fazer em
+duas sessões contra as que faz numa só (07, 08 e 12).
+
+Não é um ensaio controlado — as etapas não têm a mesma dificuldade, e são poucas. Mas três
+números por handoff chegam para ver uma tendência, e é o que a secção "Desvios ao plano" do
+`HANDOFF-TEMPLATE.md` pede:
+
+- **Detalhes de execução.** Quantos pontos o plano não previu mas que se resolveram sem
+  decidir nada. Muitos não é mau sinal: é a fronteira normal entre o que se planeia e o que
+  só se sabe com o ficheiro aberto.
+- **Decisões que obrigaram a parar.** Zero é o número suspeito. Ou o plano estava mesmo
+  completo, ou quem implementou adivinhou e não disse — e o diff é o único sítio onde se vê
+  qual das duas foi.
+- **Problemas só apanhados fora dos testes automatizados.** O melhor indicador isolado de
+  qualidade do plano, porque mede o que nem o plano nem os testes que ele mandou escrever
+  anteciparam. O handoff 08 tem três, todos do mesmo tipo — condições que nenhum teste
+  simulava.
+
+O que procurar ao fim de algumas etapas: se as de sessão única acumularem mais problemas
+apanhados tarde, ou mais decisões silenciosas visíveis no diff, a separação está a pagar-se.
+Se não houver diferença nenhuma, o ganho é só de contexto livre, e vale a pena reduzir a
+cerimónia nas etapas pequenas em vez de a manter por hábito.
+
+E há o sinal mais simples de todos, que não precisa de contagem: quando abres o handoff de
+uma etapa antiga, consegues explicar as decisões que lá estão? Se sim, o método está a fazer
+o que se pretendia dele.
 
 ## Gerir o contexto
 
@@ -181,8 +230,18 @@ Contexto: `/context` mostra o que ocupa a janela, `/compact` resume, `/clear` li
 `/rewind` (ou duplo Esc) desfaz código e conversa. Antes do commit: `/diff`, `/code-review`,
 `/security-review`. Modelo e esforço: `/model` e `/effort` (de `low` a `xhigh`, mais `max`).
 
-Para o ciclo em duas sessões: `/arrancar-etapa` corre em plan mode e sai dele só para
-escrever o plano; a seguir, `/clear`, `/model` para o modelo barato, `/implementar-etapa`.
+O plano faz-se com o modelo mais capaz, a implementação com o rápido. Para o ciclo em duas
+sessões:
+
+```
+Sessão A — modelo forte             Sessão B — modelo rápido
+/model                              /model
+/plan (ou Shift+Tab)                /implementar-etapa 03
+/arrancar-etapa 03                  Shift+Tab → acceptEdits
+  aprovas, sai do plan mode         npm test · /diff · /code-review
+  escreve docs/plans/ + commit      /handoff 03
+/clear                              /clear
+```
 
 ## Apêndice B — Codex, Cursor, Zed, Aider e outros
 

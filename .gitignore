@@ -1,9 +1,5 @@
 # Instruções e ferramentas de agentes — locais, não fazem parte do projeto
-AGENTS.md
-CLAUDE.md
 GEMINI.md
-.agents/
-.claude/
 .cursor/
 .codex/
 .gemini/
@@ -11,6 +7,11 @@ GEMINI.md
 .pi/
 .pi-lens.json
 .github/copilot-instructions.md
+
+# Notas locais de quem desenvolve — não são documentação do projeto.
+# (Já eram apanhadas pelo `*.local` da secção do frontend, mas por acidente:
+#  esse padrão é a convenção do Vite. Aqui é deliberado.)
+.local/
 
 # Segredos e configuração de ambiente
 # Nunca commitar credenciais: ver regra 4 em docs/03-CONVENTIONS.md

@@ -1,6 +1,7 @@
 # Handoff — Etapa NN: <nome>
 
 **Data:** AAAA-MM-DD · **Sessão:** #N · **Estado:** completa | parcial
+**Caminho:** duas sessões (planear / implementar) | uma sessão só
 
 ## O que ficou feito
 - <alteração concreta, com caminho do ficheiro>
@@ -14,6 +15,10 @@ ADRs escritos: `docs/adr/NNNN-*.md`
 
 ## Desvios ao plano
 Plano seguido: `docs/plans/STAGE-NN-plano.md` (ou "sem plano em disco")
+
+**<n> detalhes de execução · <n> decisões que obrigaram a parar · <n> problemas só apanhados
+fora dos testes automatizados**
+
 - <onde o código se afastou do plano, e porquê>
 
 

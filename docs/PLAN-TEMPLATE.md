@@ -4,6 +4,12 @@
 
 > Este plano vai ser executado noutra sessão, sem memória da conversa que o produziu.
 > O que não estiver aqui, desaparece. Caminhos exatos, não descrições.
+>
+> E não é um documento morto: quem implementa escreve nele quando ele deixar de bater certo
+> com o disco — ver "Desvios durante a execução", no fim.
+
+## Contexto
+- <o que já existe e esta etapa vai usar, e o que mudou desde o handoff anterior>
 
 ## O que se vai construir
 - <3 a 5 pontos>
@@ -18,8 +24,13 @@
 
 ADRs a escrever: `docs/adr/NNNN-*.md`
 
-## Por decidir — parar aqui
-- <ponto que quem implementa não deve resolver sozinho, e a pergunta a fazer>
+## Riscos e pontos de paragem
+O que pode correr mal, e o que fazer quando correr. Tudo o que obriga a parar vive aqui —
+tanto o que já se sabe à partida que precisa de decisão, como a condição que só se descobre
+a meio. Quem implementa lê isto **antes** do primeiro passo, e acrescenta-lhe as perguntas
+novas antes de parar.
+
+- <risco ou ponto aberto> → **para e pergunta** se <condição>, em vez de <o palpite óbvio>
 
 ## Passos de implementação
 Por ordem. Cada passo é uma unidade de commit.
@@ -40,5 +51,11 @@ Resultado esperado: <...>
 ## Fora de âmbito
 - <item> → pertence à etapa NN
 
-## Riscos conhecidos
-- <o que pode correr mal na implementação, e o que fazer se correr>
+## Desvios durante a execução
+Preenchido por **quem implementa, à medida que acontece** — não no fim, não no handoff.
+Quando o plano deixar de bater certo com o disco, corrige-se aqui e o problema fica visível
+para quem retomar.
+
+| Passo | O que o plano dizia | O que ficou | Detalhe ou decisão |
+|---|---|---|---|
+| | | | |
