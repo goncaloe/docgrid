@@ -95,6 +95,14 @@ class Document extends BaseEntity {
     @Column(name = "category", length = 50)
     private String category;
 
+    /**
+     * O id de correlação do pedido que autorizou o upload. É o elo entre os logs da API
+     * e os do worker que processa este documento — ver {@code docs/adr/0015-id-de-correlacao.md}.
+     * Nulo para documentos anteriores à etapa 10.
+     */
+    @Column(name = "correlation_id", length = 64, updatable = false)
+    private String correlationId;
+
     /** Preenchido quando o documento é incluído numa exportação mensal (etapa 09). */
     @Column(name = "export_id")
     private UUID exportId;
@@ -129,12 +137,14 @@ class Document extends BaseEntity {
             String originalFilename,
             String contentType,
             String storageKeyPrefix,
-            String extension) {
+            String extension,
+            String correlationId) {
         Document document = new Document();
         document.organizationId = Objects.requireNonNull(organizationId, "organizationId");
         document.submittedBy = Objects.requireNonNull(submittedBy, "submittedBy");
         document.originalFilename = Objects.requireNonNull(originalFilename, "originalFilename");
         document.contentType = Objects.requireNonNull(contentType, "contentType");
+        document.correlationId = correlationId;
         document.storageKey = "%s/%s.%s".formatted(storageKeyPrefix, document.getId(), extension);
         document.status = DocumentStatus.UPLOADED;
         return document;
@@ -273,5 +283,9 @@ class Document extends BaseEntity {
 
     String getCategory() {
         return category;
+    }
+
+    String getCorrelationId() {
+        return correlationId;
     }
 }

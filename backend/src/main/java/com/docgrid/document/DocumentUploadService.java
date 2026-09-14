@@ -18,6 +18,7 @@ import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.document.dto.FileUrlResponse;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
+import com.docgrid.shared.Correlation;
 import com.docgrid.storage.PresignedUrl;
 import com.docgrid.storage.StorageService;
 
@@ -80,7 +81,8 @@ public class DocumentUploadService {
                 cleanFilename(request.filename()),
                 contentType,
                 keyPrefix(organizationId),
-                extension);
+                extension,
+                Correlation.current());
 
         // O id do documento é o fio que liga os logs desta chamada aos do worker
         // que mais tarde processa o mesmo documento — ver application.yml.

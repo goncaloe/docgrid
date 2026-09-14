@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.docgrid.extraction.DocumentExtractor;
 import com.docgrid.extraction.ExtractionResult;
 import com.docgrid.extraction.UnreadableDocumentException;
+import com.docgrid.shared.Correlation;
 import com.docgrid.storage.NoSuchObjectException;
 import com.docgrid.storage.StorageProperties;
 import com.docgrid.storage.StorageService;
@@ -136,6 +137,15 @@ public class DocumentProcessor {
         }
 
         MDC.put("documentId", String.valueOf(claim.documentId()));
+        // O attribute da mensagem (quando existe) tem precedência: só se restaura o id
+        // que o documento guardou quando o do pedido não veio do produtor da mensagem.
+        // Um correlation_id nulo (documentos anteriores à etapa 10) é normal e não se
+        // inventa um id novo — isso criaria um rasto falso.
+        boolean restoredCorrelation = false;
+        if (Correlation.current() == null && claim.correlationId() != null) {
+            Correlation.set(claim.correlationId());
+            restoredCorrelation = true;
+        }
         try {
             byte[] content = storage.download(storageKey).content();
             ExtractionResult result = extractor.extract(content, claim.contentType());
@@ -168,6 +178,9 @@ public class DocumentProcessor {
             }
             return ProcessingOutcome.FAILED;
         } finally {
+            if (restoredCorrelation) {
+                Correlation.clear();
+            }
             MDC.remove("documentId");
         }
     }
@@ -183,7 +196,7 @@ public class DocumentProcessor {
             return transactions.execute(status -> {
                 Document document = documents.findByStorageKey(storageKey).orElse(null);
                 if (document == null) {
-                    return new Claim(Decision.NOT_FOUND, null, null);
+                    return new Claim(Decision.NOT_FOUND, null, null, null);
                 }
                 if (document.getStatus() == DocumentStatus.UPLOADED) {
                     try {
@@ -195,7 +208,8 @@ public class DocumentProcessor {
                     }
                     events.save(document.transitionTo(DocumentStatus.PROCESSING, Actor.system(), null));
                     log.info("Documento {} reclamado em PROCESSING", document.getId());
-                    return new Claim(Decision.PROCEED, document.getId(), document.getContentType());
+                    return new Claim(
+                            Decision.PROCEED, document.getId(), document.getContentType(), document.getCorrelationId());
                 }
                 return decisionForClaimed(storageKey, document);
             });
@@ -203,7 +217,7 @@ public class DocumentProcessor {
             return transactions.execute(status -> {
                 Document document = documents.findByStorageKey(storageKey).orElse(null);
                 return document == null
-                        ? new Claim(Decision.NOT_FOUND, null, null)
+                        ? new Claim(Decision.NOT_FOUND, null, null, null)
                         : decisionForClaimed(storageKey, document);
             });
         }
@@ -217,12 +231,20 @@ public class DocumentProcessor {
     private Claim decisionForClaimed(String storageKey, Document document) {
         ProcessingClaim claim = claims.findById(storageKey).orElse(null);
         if (claim == null || claim.isCompleted()) {
-            return new Claim(Decision.ALREADY_DONE, document.getId(), document.getContentType());
+            return new Claim(
+                    Decision.ALREADY_DONE, document.getId(), document.getContentType(), document.getCorrelationId());
         }
         return switch (document.getStatus()) {
-            case PROCESSING -> new Claim(Decision.RESUME, document.getId(), document.getContentType());
-            case FAILED -> new Claim(Decision.LEAVE, document.getId(), document.getContentType());
-            default -> new Claim(Decision.ALREADY_DONE, document.getId(), document.getContentType());
+            case PROCESSING ->
+                new Claim(Decision.RESUME, document.getId(), document.getContentType(), document.getCorrelationId());
+            case FAILED ->
+                new Claim(Decision.LEAVE, document.getId(), document.getContentType(), document.getCorrelationId());
+            default ->
+                new Claim(
+                        Decision.ALREADY_DONE,
+                        document.getId(),
+                        document.getContentType(),
+                        document.getCorrelationId());
         };
     }
 
@@ -342,7 +364,7 @@ public class DocumentProcessor {
         RESUME
     }
 
-    private record Claim(Decision decision, UUID documentId, String contentType) {}
+    private record Claim(Decision decision, UUID documentId, String contentType, String correlationId) {}
 
     private static final class DuplicateClaimException extends RuntimeException {}
 }

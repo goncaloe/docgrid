@@ -22,6 +22,7 @@ import com.docgrid.auth.CurrentUserProvider;
 import com.docgrid.auth.UserRole;
 import com.docgrid.document.dto.UploadUrlRequest;
 import com.docgrid.document.dto.UploadUrlResponse;
+import com.docgrid.shared.Correlation;
 import com.docgrid.storage.NoSuchObjectException;
 import com.docgrid.storage.PresignedUrl;
 import com.docgrid.storage.StorageService;
@@ -136,6 +137,23 @@ class DocumentUploadServiceTest {
                         service.authorizeUpload(new UploadUrlRequest("enorme.pdf", "application/pdf", elevenMega)))
                 .isInstanceOf(UploadValidationException.class)
                 .hasMessageContaining("grande demais");
+    }
+
+    @Test
+    void storesTheCorrelationIdOfTheRequest() {
+        Correlation.set("upload-abc");
+        try {
+            UploadUrlResponse response =
+                    service.authorizeUpload(new UploadUrlRequest("fatura.pdf", "application/pdf", 42L));
+            entityManager.flush();
+            entityManager.clear();
+
+            Document document = documents.findById(response.documentId()).orElseThrow();
+            assertThat(document.getCorrelationId()).isEqualTo("upload-abc");
+        } finally {
+            // O MDC é do fio: sem limpar, o id vaza para o teste seguinte.
+            Correlation.clear();
+        }
     }
 
     private record FixedUser(UUID organizationId, UUID userId) implements CurrentUserProvider {
