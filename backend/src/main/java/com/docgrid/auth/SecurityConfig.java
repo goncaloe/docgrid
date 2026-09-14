@@ -50,6 +50,11 @@ class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_PATHS)
                         .permitAll()
+                        // O health e o info continuam públicos (foram avaliados acima);
+                        // o resto do actuator — métricas e estado interno do processo —
+                        // é território de administração.
+                        .requestMatchers("/actuator/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())
                 .exceptionHandling(handling -> handling.authenticationEntryPoint((request, response, exception) ->

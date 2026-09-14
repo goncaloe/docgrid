@@ -87,13 +87,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # health e info são públicos; o resto do actuator (prometheus, metrics) só
+        # ADMIN — ver SecurityConfig.
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       # Sem autenticação, o corpo é apenas {"status":"UP"}. Detalhes de
       # infraestrutura não se expõem a quem não está autenticado.
       # As probes de liveness e readiness chegam na etapa 11, com o ECS.
       show-details: when-authorized
+      # Os indicadores próprios tocam em serviços (S3, SQS); 10 s evitam uma rajada
+      # de chamadas atrás de cada pedido ao /actuator/health.
+      cache:
+        time-to-live: 10s
 
 logging:
   level:
