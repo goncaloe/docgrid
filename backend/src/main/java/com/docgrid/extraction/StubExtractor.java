@@ -41,14 +41,23 @@ public class StubExtractor implements DocumentExtractor {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final ExtractionResult result;
+    private final String fixturePath;
 
     public StubExtractor(ExtractionProperties properties) {
-        this.result = loadFixture(properties.stubFixture());
+        this.fixturePath = properties.stubFixture();
+        this.result = loadFixture(fixturePath);
     }
 
     @Override
     public ExtractionResult extract(byte[] content, String contentType) {
         return result;
+    }
+
+    @Override
+    public ExtractorStatus status() {
+        // Se o bean existe, a fixture carregou (erro de configuração falha o arranque);
+        // o detalhe diz qual é, para quem olha para o health saber o caso simulado.
+        return new ExtractorStatus("stub", true, "fixture: " + fixturePath);
     }
 
     private static ExtractionResult loadFixture(String fixturePath) {

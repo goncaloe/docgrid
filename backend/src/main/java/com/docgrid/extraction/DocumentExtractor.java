@@ -17,4 +17,11 @@ public interface DocumentExtractor {
      * (erro transitório).
      */
     ExtractionResult extract(byte[] content, String contentType);
+
+    /**
+     * O estado do motor, para o health check — é o actuator a depender da extração,
+     * nunca o contrário. Sem implementação por omissão de propósito: as duas
+     * implementações têm cada uma o que dizer.
+     */
+    ExtractorStatus status();
 }

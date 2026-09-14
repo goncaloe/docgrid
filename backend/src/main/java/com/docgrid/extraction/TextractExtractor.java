@@ -23,9 +23,11 @@ import software.amazon.awssdk.services.textract.model.Document;
 public class TextractExtractor implements DocumentExtractor {
 
     private final TextractClient textract;
+    private final ExtractionProperties properties;
 
-    public TextractExtractor(TextractClient textract) {
+    public TextractExtractor(TextractClient textract, ExtractionProperties properties) {
         this.textract = textract;
+        this.properties = properties;
     }
 
     @Override
@@ -42,5 +44,16 @@ public class TextractExtractor implements DocumentExtractor {
         } catch (RuntimeException e) {
             throw TextractError.translate(e);
         }
+    }
+
+    @Override
+    public ExtractorStatus status() {
+        // Honesto em vez de verde: as análises pagam-se e o Textract não tem operação
+        // de ping, portanto não se contacta o serviço. O indicador diz que o motor está
+        // configurado, e em que região — nada mais.
+        return new ExtractorStatus(
+                "textract",
+                true,
+                "região " + properties.textract().region() + "; o serviço não foi contactado pelo health check");
     }
 }
