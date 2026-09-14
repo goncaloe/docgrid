@@ -432,4 +432,7 @@ para quem retomar.
 
 | Passo | O que o plano dizia | O que ficou | Detalhe ou decisão |
 |---|---|---|---|
+| 1 | `Correlation` com `MAX_LENGTH = 64` e padrão de saneamento | A classe acrescentou o método público `isValid(String)` (o padrão e o `MAX_LENGTH` ficaram privados); o `CorrelationIdFilterTest` afirma o padrão UUID com um regex próprio | Detalhe de execução |
+| 3 | Worker faz `Correlation.set(saneado)` do attribute | O worker só propaga quando `Correlation.isValid(...)` — valor inválido é ignorado, nunca substituído por um UUID novo, para não criar rasto falso (o mesmo princípio do risco "o worker sem correlationId") | Detalhe de execução |
+| 4 | Teste B: "receber com `queues.receiveFromMain()` e afirmar que a mensagem traz o attribute" | O LocalStack deixa o `s3:TestEvent` do arranque na fila; o teste filtra as mensagens que têm o attribute (exatamente 1) e apaga todas as recebidas | Detalhe de execução |
 | | | | |
