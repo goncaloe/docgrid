@@ -1,111 +1,96 @@
 # Handoff — Etapa 09: Dashboard e exportação
 
-**Data:** 2026-09-14 · **Sessão:** #12 · **Estado:** parcial — falta frontend e ADRs
+**Data:** 2026-09-14 · **Sessão:** #13 · **Estado:** completa (verificação manual pendente)
 
 ## O que ficou feito
 
-### Categoria gravada na aprovação — `backend/`
+### Backend (sessão #12, já commitado)
 
-- `V8__document_category.sql` — coluna `category varchar(50)` em `documents`.
-- `Document.java` — campo `category`, getter, `void categoriseAs(String)`.
-- `DocumentApprovalService.java` — na aprovação, grava categoria na projeção, cria/atualiza
-  `extracted_fields` CATEGORY com origem HUMAN (sem confiança), e emite
-  `FIELD_CORRECTED` se o valor mudou (inclusive de nulo).
-- `FieldCorrectionService.java` — depois de `projectInvoiceFields`, projeta também
-  a categoria a partir do `CATEGORY` field, para os dois caminhos de escrita não divergirem.
-- Testes: `DocumentApprovalServiceTest` (2 novos: aprovar com/sem categoria),
-  `FieldCorrectionServiceTest` (1: corrigir CATEGORY projeta na coluna).
+- **Categoria gravada na aprovação** — `DocumentApprovalService` grava `documents.category`
+  e o campo `CATEGORY` (origem `HUMAN`, sem confiança); `FieldCorrectionService` projeta
+  também a categoria. Migração `V8`.
+- **Escrita direta no S3** — `StorageService.put` / `S3StorageService` (usado para o CSV).
+- **Read model do dashboard** — `com.docgrid.dashboard` (só lê): 5 consultas `JdbcClient`,
+  `DashboardController` `/api/dashboard` (`FINANCE`/`MANAGER`/`ADMIN`), migração `V9`
+  (índice de agregação). `DashboardPerformanceTest`: < 1000 ms com 5000 documentos.
+- **Exportação mensal** — `com.docgrid.export`: `ExportService` (fecho idempotente por
+  (org, ano, mês), 409 para períodos futuros), `ExportCsvWriter` (BOM, `;`, vírgula decimal,
+  RFC 4180), `DocumentExportService.markExported` (porta pública de `document`), migração
+  `V10` (`exports` + `documents.export_id`). `ExportController` 201/200, lista por ano,
+  URL de descarga. O `ExportRow` é a forma única da linha exportada — a consulta lê-a e o
+  escritor consome-a sem tradução pelo meio.
 
-### Escrita direta no S3 — `backend/`
+### Frontend (esta sessão)
 
-- `StorageService.java` — `void put(String key, String contentType, byte[] content)`.
-- `S3StorageService.java` — `s3.putObject(PutObjectRequest, RequestBody.fromBytes(content))`.
-- Teste: `S3StorageServiceTest` (1: put seguido de download devolve os mesmos bytes).
+- **Dashboard** — `frontend/src/features/dashboard/`: `DashboardPage` (rota `/dashboard`,
+  `FINANCE`/`MANAGER`/`ADMIN`), `KpiRow` (taxa de automação em destaque, cor primária,
+  "—"/"ainda sem documentos processados" em vez de 0%), `MonthlyChart` (`BarChart`),
+  `CategoryDonut` (`DonutChart`, fatia null → "Sem categoria", cauda → "Outros"),
+  `TopSuppliers` (tabela + `Progress` proporcional), `PeriodFilter` (`type="month"`, sem
+  `@mantine/dates`), `dashboardChartData.ts` (funções puras de dados), `useDashboard.ts`
+  (`placeholderData: keepPreviousData`).
+- **Exportações** — `frontend/src/features/exports/`: `ExportsPage` (rota `/exports`),
+  `ConfirmCloseModal` (aviso de irreversibilidade), `useExports.ts`. Descarga por
+  `getExportFileUrl` + `window.open(url, "_blank", "noopener,noreferrer")`. O POST com 200
+  (período já fechado) mostra "Período já fechado — não se duplicou nada".
+- **`format.ts`** — formatadores pt-PT únicos (`formatEuro`, `formatPercent`, `formatDate`,
+  `formatDuration`); a `DocumentsTable` migrou para eles (saíram os formatadores locais).
+- **`api/client.ts`** — `ApiFetchOptions.onStatus` (aditivo): recolhe o status HTTP da
+  resposta final, para distinguir o 201 do 200 no fecho. Único consumidor: `createExport`.
+- **Dependências** — `@mantine/charts@7.17.8` + `recharts@2.15.4`; o React continua em
+  18.3.1 (sem subir Mantine nem React — não é preciso parar pelo "por decidir" do plano).
+  `@mantine/charts/styles.css` importado em `main.tsx`.
+- **`vite.config.ts`** — `testTimeout: 10_000`: os 5 s por omissão dão falhas espúrias com
+  10+ workers paralelos nesta máquina (a suite gasta >300 s de CPU em Windows).
 
-### Agregações do dashboard — `backend/src/main/java/com/docgrid/dashboard/`
+### Documentação (esta sessão)
 
-- `V9__document_aggregation_index.sql` — índice em `(organization_id, status, issue_date)`.
-- `package-info.java` — read model, só lê.
-- `DashboardQueries.java` — 5 consultas com `JdbcClient`: `periodTotals`, `operations`,
-  `monthlyTotals`, `categoryTotals`, `topSuppliers`. Todas filtram por `organization_id`.
-- `DashboardService.java` — `@Transactional(readOnly = true)`, monta `DashboardResponse`.
-- `DashboardController.java` — `@RestController @RequestMapping("/api/dashboard")`,
-  `@PreAuthorize("hasAnyRole('FINANCE','MANAGER','ADMIN')")`, parâmetros `from`/`to`
-  (`YearMonth`, default últimos 12 meses).
-- `dto/DashboardResponse.java` — record principal + 5 nested records (`PeriodTotals`,
-  `Operations`, `MonthlyTotal`, `CategoryTotal`, `SupplierTotal`).
-- Testes: `DashboardQueriesTest` (6), `DashboardControllerTest` (3), `DashboardPerformanceTest`
-  (1 — 5 ms com 5000 docs, log registado).
-
-### Exportação mensal — `backend/src/main/java/com/docgrid/export/`
-
-- `V10__exports.sql` — tabela `exports` (`id`, `organization_id`, `period_year`,
-  `period_month`, `storage_key`, `document_count`, `net_total`, `vat_total`, `total`,
-  `created_by`, timestamps) com índice único `uq_exports_org_period`; `export_id` em
-  `documents` com índice parcial.
-- `Document.java` — `void markExported(UUID exportId)` e campo `export_id`.
-- `DocumentExportService.java` — `@Transactional`, `markExported(orgId, exportId, docIds, actor)`,
-  transita cada documento para `EXPORTED` e grava o evento.
-- `Export.java` — entidade JPA, package-private, com `static withId(...)` fábrica (reflexão
-  no campo privado de `BaseEntity` para fixar o PK).
-- `ExportRepository.java` — `findByOrganizationIdAndPeriodYearAndPeriodMonth`,
-  `findByOrganizationIdAndPeriodYearOrderByPeriodMonthDesc`, `findByIdAndOrganizationId`.
-- `ExportQueries.java` — `JdbcClient`: seleciona `APPROVED` sem `export_id` para exportar,
-  conta `APPROVED` sem `issue_date`.
-- `ExportCsvWriter.java` — `@Component`, `byte[] write(List<ExportRow>)`: UTF-8 BOM,
-  `;`, `\r\n`, `dd-MM-yyyy`, vírgula decimal, RFC 4180 quoting.
-  Cabeçalho: `Data;Nº da fatura;Fornecedor;NIF;Base tributável;Taxa IVA;IVA;Total;Categoria;Moeda;Ficheiro`.
-- `ExportService.java` — `@Transactional`: recusa períodos futuros (409), verifica existente
-  (idempotente), gera CSV, `storage.put()`, grava `Export` + chama `DocumentExportService`.
-  `DataIntegrityViolationException` catch no caso de condição de corrida.
-- `ExportController.java` — `@PostMapping` (201/200 `ResponseEntity`), `@GetMapping` (lista
-  por ano), `@GetMapping("/{id}/file-url")`.
-- `dto/ExportResponse.java`, `dto/CreateExportRequest.java`, `dto/ExportFileUrlResponse.java`.
-- `PeriodNotClosableException.java` — `extends DomainException`, devolve 409.
-- `ExportNotFoundException.java` — devolve 404.
-- Testes: `ExportCsvWriterTest` (8 — unitários, sem Spring), `ExportServiceTest` (6 — com
-  Postgres + LocalStack via `LocalStackContainerConfiguration`).
-
-Fora da etapa: `LocalStackContainerConfiguration` foi criado para os testes de exportação
-e `DocumentProcessorTest` deveria poder reusá-lo (ver Armadilhas).
+- `docs/adr/0013-read-model-do-dashboard-e-exportacao.md` — agregar em SQL, read model,
+  regra "lê-se por SQL, escreve-se pelo pacote dono".
+- `docs/adr/0014-fecho-de-periodo-e-formato-do-csv.md` — período pela `issue_date`,
+  lançamentos extemporâneos, não se reabre, idempotência pelo índice único, formato CSV
+  para o Excel português.
+- `docs/03-CONVENTIONS.md` — `dashboard/` e `export/` na árvore de pacotes.
+- `docs/01-PRODUCT.md` — secção "Exportação mensal e fecho de período".
+- `README.md` — estado da etapa 09; SAF-T como evolução possível.
 
 ## Decisões tomadas
 
-As decisões estão no plano (`docs/plans/STAGE-09-plano.md`). Ver ADRs abaixo — estão por
-escrever (faltam ADR-0013 e ADR-0014), mas as decisões foram implementadas conforme o plano.
-
 | Decisão | Alternativa posta de lado | Porquê |
 |---|---|---|
-| `integer` em vez de `smallint` na V10 | `smallint` como o plano previa | A entidade JPA `Export` mapeia `int` → `integer` (int4); o Hibernate schema-validation rejeitava `smallint` (int2). Corrigido durante a implementação |
-| `ExportCsvWriter` como `@Component` (instância) | Classe puramente estática | O `ExportService` injeta-o como bean; `write()` passou de estático para método de instância. Os testes (`ExportCsvWriterTest`) foram ajustados para instanciar a classe |
+| Modal de fecho **sem o número** de documentos | Mostrar "quantos vão ser incluídos" (passo 6 do plano) | O contrato do backend (passo 4, já commitado) não expõe esse número antes do POST; acrescentar um endpoint de pré-visualização era alargar um backend já fechado. Decidido com o autor: aviso genérico; o número chega depois, na notificação e na linha da tabela |
+| Rótulos e texto do frontend em **português de Portugal** | Registo linguístico misturado | Indicação explícita do autor a meio da sessão; aplicado a todo o texto novo (strings, comentários, testes) e aos documentos novos |
+| `testTimeout: 10_000` no vitest | 5 s por omissão | Falhas espúrias por timeout sob carga nesta máquina Windows |
+| `onStatus` em `ApiFetchOptions` (callback aditiva) | Mudar o retorno do `apiFetch` | Um único consumidor (`createExport`); tipo de retorno intocado para os outros 50+ call sites |
+| `DashboardPage` sem teste do SVG dos gráficos | Asserções sobre o conteúdo do SVG | O `ResponsiveContainer` do Recharts mede 0×0 em jsdom e não desenha; os números e os dados puros estão cobertos |
 
-ADRs a escrever: `docs/adr/0013-read-model-do-dashboard-e-exportacao.md` e
-`docs/adr/0014-fecho-de-periodo-e-formato-do-csv.md` — planeados para o passo 7.
+ADRs escritos: `docs/adr/0013-*.md`, `docs/adr/0014-*.md`
 
 ## Desvios ao plano
 
 Plano seguido: `docs/plans/STAGE-09-plano.md`
 
-- **`ExportCsvWriter` tornou-se `@Component`**, não uma utility puramente estática, porque
-  o `ExportService` precisa de o injetar. O `write()` passou a método de instância.
-  Isto permitiu injeção direta sem refletir sobre `static`.
-- **`ExportController.create()` usa `ResponseEntity`** para devolver 201 na primeira chamada
-  e 200 na segunda (período já fechado), em vez de um `@ResponseStatus(HttpStatus.CREATED)
-  fixo que colocaria 201 sempre.
-- **`period_year`/`period_month` em `integer`** na V10 e não `smallint` — ver decisões.
-- **`Export.withId()` usa reflexão** para escrever o campo `id` privado de `BaseEntity`.
-  Alternativa seria expor um `setId()` em `BaseEntity`, mas isso abriria a porta a erros
-  noutras entidades.
-- **V10 adiciona `updated_at` à tabela `exports`** — o plano omitiu-o. A entidade estende
-  `BaseEntity` que tem o campo, e sem ele a JPA rejeita a entidade.
+- **`ConfirmCloseModal` sem o número de documentos** — ver Decisões. O plano dizia "quantos
+  documentos vão ser incluídos"; o backend não expõe esse número antes de exportar.
+- **`ApiFetchOptions.onStatus`** — o frontend precisa de distinguir 201 de 200 no POST de
+  exportação, e o `apiFetch` não devolvia o status. Acrescentado como campo opcional aditivo.
+- **Rota `/dashboard` no commit das exportações** — o `App.tsx` e o `NavLinks.tsx` levam as
+  duas rotas; dividir hunks de forma não interativa não é viável, por isso o ficheiro
+  completo vai no commit das exportações (o dashboard chega à app um commit mais tarde do
+  que o seu código).
+- **Os testes das exportações** usam o mês corrente do sistema (não mexem no `Select` de
+  mês); o plano não especificava a interação.
+- **`@mantine/charts` sem problemas** — o ponto do plano "para e pergunta se for preciso
+  subir Mantine/React" não se disparou: 7.17.8 alinhado com o core 7.17.8, React 18.3.1
+  intacto.
 
 ## Como verificar
 
 ```bash
-# backend — 300 testes
+# backend — 300 testes (precisa do Docker Desktop a correr: Testcontainers)
 npm test
 
-# frontend (quando implementado)
+# frontend
 cd frontend
 npx tsc -b --noEmit
 npx eslint .
@@ -113,57 +98,69 @@ npx vitest run
 npm run build
 ```
 
-Resultado esperado: 300/300 testes verdes, BUILD SUCCESS.
+Corrido no fim da etapa: **backend 300/300 verdes, frontend 60/60 verdes**, 0 erros de
+lint dos dois lados, BUILD SUCCESS. A suite do backend só arranca com o Docker Desktop
+aberto — ver armadilha 1.
+
+Manual, com a app a correr (`npm run up` + `cd frontend && npm run dev`):
+
+```bash
+curl -s "http://localhost:8080/api/dashboard?from=2026-01&to=2026-09" -H "Authorization: Bearer $TOKEN" | jq
+curl -s -X POST http://localhost:8080/api/exports -H "Authorization: Bearer $TOKEN" \
+     -H "content-type: application/json" -d '{"year":2026,"month":8}' -i | head -1   # 201
+curl -s -X POST http://localhost:8080/api/exports -H "Authorization: Bearer $TOKEN" \
+     -H "content-type: application/json" -d '{"year":2026,"month":8}' -i | head -1   # 200
+```
 
 ## O que ficou por fazer
 
-- **Frontend dashboard** — `@mantine/charts`, componentes (`KpiRow`, `MonthlyChart`,
-  `CategoryDonut`, `TopSuppliers`), `DashboardPage`, rota `/dashboard`.
-- **Frontend exportações** — `ExportsPage`, `ConfirmCloseModal`, rota `/exports`, descarga
-  por URL pré-assinado.
-- **ADR-0013** — read model do dashboard (agregar em SQL, pacote `dashboard` como só leitura).
-- **ADR-0014** — fecho de período e formato CSV (BOM, `;`, vírgula decimal, lançamentos
-  extemporâneos, não reabrir).
-- **`docs/03-CONVENTIONS.md`** — acrescentar `dashboard/` à árvore de pacotes.
-- **`docs/01-PRODUCT.md`** — secção sobre exportação e fecho de período.
-- **`README.md`** — SAF-T como evolução possível.
-- **GIF do ecrã para `docs/assets/`** — continua por fazer desde a etapa 08.
-- **`LocalStackContainerConfiguration`** não está a ser usado por `DocumentProcessorTest`
-  e outros testes que também arrancam LocalStack — podem beneficiar de o reutilizar.
+- **Verificar o CSV no Excel a sério** (critério de aceitação: acentos e vírgulas decimais
+  com duplo clique). A codificação está coberta por teste, mas abrir o ficheiro no Excel
+  a valer é outra coisa — fica para a verificação manual, com a app a correr.
+- **GIF do ecrã para `docs/assets/`** — continua a pertencer à etapa 12 (plano).
+- **`LocalStackContainerConfiguration`** — reutilizá-lo a partir do `DocumentProcessorTest` e
+  de outros testes que arrancam o LocalStack à mão; não está no plano da etapa 09.
+- Mais nada da etapa 09 fica por implementar.
 
 ## Armadilhas para a próxima sessão
 
-1. **`smallint` vs `int` na JPA.** Se criares uma coluna `smallint` no Postgres, a JPA
-   mapeia `int`/`Integer` → `integer` (int4) e o *schema-validation* do Hibernate rejeita
-   a diferença de tipo. Usa `integer` na migração ou mapeia o campo como `Short`.
-2. **`@TestPropertySource` cria contextos separados.** O `ExportServiceTest` usa
-   `@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=none")` que cria uma
-   entrada diferente no cache de contextos Spring. Se falhar, só os testes com essa
-   combinação exata de anotações ficam afetados.
-3. **`DataIntegrityViolationException` na exportação concorrente.** O `ExportService.create()`
-   primeiro verifica se existe, depois insere. Em condição de corrida, a segunda inserção
-   viola o índice único e o catch devolve a exportação que ganhou. A ordem é: `storage.put()`
-   primeiro, depois a transação da base de dados — assim um objeto órfão no S3 não tem
-   consequência funcional.
-4. **`LocalStackContainerConfiguration`** é um `@TestConfiguration` que cria o bucket
-   automaticamente via `awslocal s3 mb`. Pode ser reutilizado por qualquer teste que precise
-   de S3 real — evita duplicar o container e a criação do bucket.
-5. **Categoria com `null` no `documents.category`** é tratada como "Sem categoria" no
-   frontend. A API devolve `null` no campo `category` — o rótulo é responsabilidade do
-   frontend, nunca da API (lição 5 do handoff 08).
+1. **Docker em baixo ⇒ suite do backend inteira a vermelho.** O Testcontainers não distingue
+   "Docker apagado" de uma regressão: todas as classes de integração falham a carregar
+   contexto. Antes de `npm test`, confirma `docker info`. (Nesta máquina Windows, o Docker
+   Desktop tem de estar aberto.)
+2. **`@mantine/charts` e o React.** O 7.17.x exige `@mantine/core`/`@mantine/hooks` da mesma
+   versão exata e admite React ^18 || ^19. Antes de subir o `@mantine/charts`, verifica os
+   `peerDependencies` — uma versão 8+ traria React 19 (armadilha 6 do handoff 08).
+3. **O Recharts em jsdom desenha vazio** (ResponsiveContainer 0×0) e avisa por stderr
+   ("The width(0) and height(0) of chart..."). Não escrevas testes sobre o SVG; o donut nem
+   sequer tem os rótulos no DOM — cobre-os com as funções puras de `dashboardChartData.ts`.
+4. **`vite.config.ts` testTimeout.** A suite é lenta em Windows (a recolha gasta >300 s de
+   CPU com workers paralelos); 10 s de limite por teste evitam falhas intermitentes. Não o
+   baixes.
+5. **O status HTTP não chega pelo `apiFetch`** (só o corpo). Para distinguir 201 de 200
+   usa-se agora o `onStatus`; não o confundas com devolver o corpo.
+6. **O rótulo da categoria nula** é responsabilidade do frontend ("Sem categoria" em
+   `categoryChartData.ts`), nunca da API (lição 5 do handoff 08).
+7. **`noUncheckedIndexedAccess`** está ativo: `array[i]` dá `T | undefined`; o
+   `categoryColor()` tem fallback por causa disso.
 
-## Ficheiros centrais desta etapa
+## Ficheiros centrais desta sessão
 
-- `backend/.../dashboard/DashboardQueries.java` — as 5 consultas SQL com `JdbcClient`.
-- `backend/.../dashboard/DashboardPerformanceTest.java` — prova de que < 1000 ms com 5000 docs.
-- `backend/.../export/ExportService.java` — orquestra o fecho de período.
-- `backend/.../export/ExportCsvWriter.java` — gera o CSV com BOM e formatação pt-PT.
-- `backend/.../export/ExportQueries.java` — seleciona documentos para exportar.
-- `backend/.../document/DocumentApprovalService.java` — alterado para gravar categoria.
+- `frontend/src/features/dashboard/dashboardChartData.ts` — funções puras que os gráficos
+  consomem (rótulos pt, ordem, agrupar cauda).
+- `frontend/src/features/dashboard/KpiRow.tsx` — a taxa de automação em destaque.
+- `frontend/src/features/exports/ExportsPage.tsx` — fecho de período, aviso 200, descarga.
+- `frontend/src/api/exports.ts` — `createExport` devolve `{ status, export }`.
+- `frontend/src/format.ts` — os formatadores pt-PT únicos do frontend.
+- `docs/adr/0013-*.md`, `docs/adr/0014-*.md` — as decisões da etapa.
 
 ## Commits
 
 ```
+cdda5e5 docs(adr): read model do dashboard e fecho de período
+997fe3b feat(frontend): fecho de período e descarga do CSV
+14d354b feat(frontend): dashboard com a taxa de automação em destaque
+344d781 docs(handoff): etapa 09
 e9e3723 feat(api): endpoints de exportação mensal
 b0f8cd7 feat(export): fecho de período idempotente
 0b491e2 feat(export): escrita do CSV no formato esperado pelo contabilista
