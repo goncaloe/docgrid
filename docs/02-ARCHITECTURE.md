@@ -89,3 +89,15 @@ O objetivo é `npm run up` levantar tudo localmente sem uma única credencial AW
 JWT com refresh token. Papéis `EMPLOYEE`, `FINANCE`, `MANAGER`, `ADMIN`. Autorização ao nível
 do método (`@PreAuthorize`) e filtragem por organização em todas as consultas.
 Ficheiros no S3 são privados: o acesso é sempre por URL pré-assinado de curta duração.
+
+## Observabilidade
+
+Cada pedido HTTP leva um id de correlação (`X-Correlation-Id`, UUID saneado) que atravessa
+a linha por dois caminhos — pela coluna `documents.correlation_id` no caminho normal (o
+produtor da mensagem é o S3, que não carrega atributos) e por atributo de mensagem no que
+a aplicação envia (o redrive da DLQ). Ver `docs/adr/0015-id-de-correlacao.md`.
+
+Os logs são estruturados em JSON (ECS) no perfil `aws`; em local a linha é legível com
+`cid=`, `doc=` e `msg=`. As métricas vivem em `/actuator/prometheus` (só `ADMIN`) e o
+estado do pipeline em `GET /api/admin/pipeline/stats`. O health reporta cada dependência
+separadamente (`db`, `s3`, `sqs`, `extractor`). Ver `docs/adr/0016-metricas-e-health-checks.md`.

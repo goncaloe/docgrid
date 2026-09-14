@@ -116,9 +116,15 @@ bucket `docgrid-documents` e a fila `docgrid-document-processing`.
 
 ## Estado
 
-Etapa atual: 09 — dashboard e exportação mensal. O CSV fechado por mês (fecho de
-período) gera-se no servidor, guarda-se no S3 e descarrega-se a partir do frontend; o
-dashboard mostra a taxa de automação, a evolução mensal e os principais fornecedores.
+Etapa atual: 10 — observabilidade. O id de correlação atravessa API → fila → worker (e o
+documento guarda-o), os logs estruturados em JSON ligam-se no perfil `aws`, e há cinco
+métricas em `/actuator/prometheus` mais o estado do pipeline em
+`/api/admin/pipeline/stats`. O `/actuator/health` reporta cada dependência separadamente.
+
+Para ver os logs em JSON localmente, liga o formatador por variável de ambiente:
+`LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (em local o padrão é uma linha legível
+com `cid=`, `doc=` e `msg=`). As métricas e o endpoint de estatísticas são território de
+`ADMIN`.
 
 Evoluções possíveis (fora do roteiro): integração real com software de contabilidade e o
 **SAF-T** completo — o formato XML que a autoridade tributária portuguesa usa para as

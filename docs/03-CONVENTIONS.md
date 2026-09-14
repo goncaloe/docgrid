@@ -34,6 +34,9 @@ O que é interno ao pacote é package-private. Só sai público o que outro paco
 - Exceções de domínio próprias, tratadas num `@RestControllerAdvice` que devolve
   RFC 7807 (`application/problem+json`).
 - Nada de `System.out.println`. SLF4J com logging estruturado.
+- O MDC do projeto tem três chaves: `correlationId` (o id do pedido, ver ADR 0015),
+  `documentId` (o documento ao longo dos dias) e `messageId` (a mensagem SQS, só do
+  worker). Nenhum log do pipeline sai sem `documentId`.
 
 ## Testes
 
