@@ -116,4 +116,10 @@ bucket `docgrid-documents` e a fila `docgrid-document-processing`.
 
 ## Estado
 
-Etapa 00 — fundações. O esqueleto arranca e é testado; ainda não há lógica de negócio.
+Etapa atual: 09 — dashboard e exportação mensal. O CSV fechado por mês (fecho de
+período) gera-se no servidor, guarda-se no S3 e descarrega-se a partir do frontend; o
+dashboard mostra a taxa de automação, a evolução mensal e os principais fornecedores.
+
+Evoluções possíveis (fora do roteiro): integração real com software de contabilidade e o
+**SAF-T** completo — o formato XML que a autoridade tributária portuguesa usa para as
+declarações de IVA — na mesma linha da exportação mensal.

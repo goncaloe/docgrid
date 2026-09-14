@@ -85,6 +85,27 @@ O motor de extração só lê. Não sabe se o que leu faz sentido. As regras sã
 A categoria é **sugerida**, nunca imposta: se este NIF já apareceu 5 ou mais vezes sempre
 na mesma categoria, sugere-a com o histórico como justificação.
 
+## Exportação mensal e fecho de período
+
+Uma vez por mês, alguém com o papel `FINANCE` (ou `MANAGER`/`ADMIN`) fecha o período: o
+sistema recolhe os documentos aprovados que ainda não foram exportados e com data de
+emissão anterior ao fim do mês, gera um CSV em UTF-8 com BOM e vírgula decimal (abre
+diretamente no Excel português), guarda-o no S3 e passa os documentos incluídos a
+`EXPORTED`.
+
+- O mês de um documento é o da sua `issue_date`, não o da data em que se subiu. Um documento
+  aprovado tarde, de um mês já fechado, entra na exportação seguinte como **lançamento
+  extemporâneo** — o ficheiro leva a data real e o contabilista vê-o.
+- Um período fechado **não se reabre**: os documentos ficam `EXPORTED` para sempre. Se algo
+  está mal, corrige-se com um documento novo de correção.
+- O fecho é idempotente por (organização, mês): pedir o mesmo mês duas vezes devolve a mesma
+  exportação, sem duplicar documentos.
+- A **categoria** escolhida pelo revisor fica gravada na aprovação: no campo `CATEGORY` de
+  `extracted_fields` (origem `HUMAN`, sem confiança) e na projeção `documents.category`.
+  Sem ela, o dashboard não teria repartição por categoria nem o CSV coluna de categoria.
+- Um aprovado **sem `issue_date`** nunca pode entrar num período: fica fora do ficheiro,
+  mas a resposta da exportação conta-os para que ninguém pense que se perderam.
+
 ## Fora de âmbito
 
 Deliberadamente de fora, para o projeto não crescer sem fim:

@@ -13,7 +13,8 @@ com.docgrid
 ├── extraction/      # interface + Textract + stub
 ├── validation/      # motor de regras
 ├── supplier/
-├── export/
+├── dashboard/       # read model: agregações do dashboard (só le)
+├── export/          # fecho de período e geração do CSV
 ├── auth/
 ├── shared/          # config, exceções, utilitários
 └── DocGridApplication.java
