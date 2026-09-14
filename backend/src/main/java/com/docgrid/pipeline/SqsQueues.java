@@ -1,13 +1,16 @@
 package com.docgrid.pipeline;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import com.docgrid.shared.Correlation;
@@ -88,6 +91,40 @@ public class SqsQueues {
         }
         sqs.sendMessage(request.build());
     }
+
+    /**
+     * O estado das duas filas num instante: {@code available} é o que está à espera de
+     * um consumidor, {@code inFlight} o que está em curso (invisível para os outros
+     * consumidores). Alimenta os gauges e o endpoint de estatísticas do pipeline.
+     *
+     * <p>Timeout curto e sem retry próprio, de propósito: quem pergunta quer a resposta
+     * agora; uma fila em baixo é reportada por quem sabe reportá-la — o health check.
+     *
+     * @throws software.amazon.awssdk.core.exception.SdkException se o SQS não responder —
+     *     quem chama decide o que fazer com isso
+     */
+    public QueueDepths depths(Duration apiCallTimeout) {
+        return new QueueDepths(attributes(mainUrl(), apiCallTimeout), attributes(dlqUrl(), apiCallTimeout));
+    }
+
+    private QueueDepth attributes(String queueUrl, Duration apiCallTimeout) {
+        GetQueueAttributesResponse response = sqs.getQueueAttributes(r -> r.queueUrl(queueUrl)
+                .attributeNames(
+                        QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES,
+                        QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE)
+                .overrideConfiguration(o -> o.apiCallTimeout(apiCallTimeout)));
+        return new QueueDepth(
+                parseCount(response.attributes().get(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)),
+                parseCount(response.attributes().get(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE)));
+    }
+
+    private static int parseCount(String value) {
+        return value == null ? 0 : Integer.parseInt(value);
+    }
+
+    public record QueueDepths(QueueDepth main, QueueDepth dlq) {}
+
+    public record QueueDepth(int available, int inFlight) {}
 
     private String mainUrl() {
         String url = mainQueueUrl;
