@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.docgrid.extraction.DocumentExtractor;
+import com.docgrid.extraction.ExtractionMetrics;
 import com.docgrid.extraction.ExtractionResult;
 import com.docgrid.extraction.UnreadableDocumentException;
 import com.docgrid.shared.Correlation;
@@ -49,6 +50,8 @@ public class DocumentProcessor {
     private final ProcessingClaimRepository claims;
     private final StorageService storage;
     private final DocumentExtractor extractor;
+    private final ExtractionMetrics extractionMetrics;
+    private final DocumentMetrics documentMetrics;
     private final ValidationEngine validationEngine;
     private final DocumentValidationContextFactory validationContexts;
     private final TransactionTemplate transactions;
@@ -60,6 +63,8 @@ public class DocumentProcessor {
             ProcessingClaimRepository claims,
             StorageService storage,
             DocumentExtractor extractor,
+            ExtractionMetrics extractionMetrics,
+            DocumentMetrics documentMetrics,
             ValidationEngine validationEngine,
             DocumentValidationContextFactory validationContexts,
             TransactionTemplate transactions,
@@ -69,6 +74,8 @@ public class DocumentProcessor {
         this.claims = claims;
         this.storage = storage;
         this.extractor = extractor;
+        this.extractionMetrics = extractionMetrics;
+        this.documentMetrics = documentMetrics;
         this.validationEngine = validationEngine;
         this.validationContexts = validationContexts;
         this.transactions = transactions;
@@ -148,7 +155,7 @@ public class DocumentProcessor {
         }
         try {
             byte[] content = storage.download(storageKey).content();
-            ExtractionResult result = extractor.extract(content, claim.contentType());
+            ExtractionResult result = extractionMetrics.time(() -> extractor.extract(content, claim.contentType()));
             complete(claim.documentId(), storageKey, content, result);
 
             log.info("Documento {} extraído: a chave {} está pronta para revisão", claim.documentId(), storageKey);
@@ -264,6 +271,7 @@ public class DocumentProcessor {
 
             ValidationSummary summary =
                     validationEngine.validate(validationContexts.build(document, result.confidences()));
+            documentMetrics.recordExtraction(summary.requiresReview());
             DocumentStatus target = summary.requiresReview() ? DocumentStatus.NEEDS_REVIEW : DocumentStatus.EXTRACTED;
             events.save(document.transitionTo(target, Actor.system(), truncate(summary.reason())));
 
