@@ -1,5 +1,6 @@
 package com.docgrid.shared;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -41,7 +42,13 @@ class ActuatorSecurityTest {
 
     @Test
     void healthIsPublic() throws Exception {
-        mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+        // O health está em PUBLIC_PATHS: sem token nunca exige autenticação. O estado
+        // (UP/DOWN) depende das dependências, que neste contexto (sem LocalStack) estão
+        // em baixo — o que se afirma é que o endpoint não é 401 nem 403.
+        mvc.perform(get("/actuator/health")).andExpect(result -> {
+            int status = result.getResponse().getStatus();
+            assertThat(status).isNotIn(401, 403);
+        });
     }
 
     @Test

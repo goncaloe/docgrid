@@ -69,4 +69,11 @@ class HealthEndpointTest {
                 .andExpect(jsonPath("$.components.sqs.status").value("UP"))
                 .andExpect(jsonPath("$.components.extractor.status").value("UP"));
     }
+
+    @Test
+    void healthIsPublicWithoutAToken() throws Exception {
+        // Com a infraestrutura a correr, o health responde 200 mesmo sem token — é o que
+        // as sondas (etapa 11) e o mundo exterior precisam de ver sem autenticar.
+        mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+    }
 }

@@ -31,7 +31,7 @@ class CorrelationIdFilterTest {
     @Test
     void answerGeneratesAnIdWhenTheRequestDoesNotBringOne() throws Exception {
         var result =
-                mvc.perform(get("/actuator/health")).andExpect(status().isOk()).andReturn();
+                mvc.perform(get("/actuator/info")).andExpect(status().isOk()).andReturn();
 
         String header = result.getResponse().getHeader(Correlation.HEADER);
         assertThat(header).matches(UUID_PATTERN);
@@ -39,7 +39,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void answerEchoesACleanClientId() throws Exception {
-        var result = mvc.perform(get("/actuator/health").header(Correlation.HEADER, "pedido-abc_123"))
+        var result = mvc.perform(get("/actuator/info").header(Correlation.HEADER, "pedido-abc_123"))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -48,7 +48,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void answerReplacesJunkWithANewId() throws Exception {
-        var result = mvc.perform(get("/actuator/health").header(Correlation.HEADER, "lixo </script> & tudo"))
+        var result = mvc.perform(get("/actuator/info").header(Correlation.HEADER, "lixo </script> & tudo"))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -59,7 +59,7 @@ class CorrelationIdFilterTest {
 
     @Test
     void mdcIsCleanAfterTheRequest() throws Exception {
-        mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+        mvc.perform(get("/actuator/info")).andExpect(status().isOk());
 
         // O mesmo fio serviu o pedido; se o finally não limpar, o id fica preso aqui.
         assertThat(Correlation.current()).isNull();

@@ -73,7 +73,10 @@ class CorrelationPropagationTest {
             HttpResponse<Void> put = http.send(
                     HttpRequest.newBuilder(uploaded.uploadUrl())
                             .header("Content-Type", "application/pdf")
-                            .PUT(BodyPublishers.ofByteArray("conteúdo de uma fatura real".getBytes(UTF_8)))
+                            // Conteúdo próprio deste teste: se fosse o mesmo do
+                            // PipelineFlowTest, a regra de duplicados por hash binário
+                            // marcaria o segundo documento como NEEDS_REVIEW.
+                            .PUT(BodyPublishers.ofByteArray("conteúdo de uma fatura real (correlação)".getBytes(UTF_8)))
                             .build(),
                     BodyHandlers.discarding());
             assertThat(put.statusCode()).isEqualTo(200);
