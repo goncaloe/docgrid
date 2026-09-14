@@ -1,5 +1,16 @@
 # Execução em AWS. Sem valores por omissão de propósito: se uma variável faltar,
 # a aplicação não arranca, em vez de arrancar apontada ao sítio errado.
+#
+# Logs estruturados em JSON (formato ECS) na consola: o Boot 3.5 substitui o encoder
+# e escreve uma linha JSON por evento, com o MDC em campos de topo (correlationId,
+# documentId, messageId). A etapa 11 envia isto para o CloudWatch sem nenhum agente de
+# log a mais. Em local liga-se o mesmo formato com
+# LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs.
+logging:
+  structured:
+    format:
+      console: ecs
+
 spring:
   datasource:
     url: ${DOCGRID_DB_URL}
