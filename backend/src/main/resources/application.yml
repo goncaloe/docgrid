@@ -99,8 +99,9 @@ logging:
   level:
     com.docgrid: INFO
   pattern:
-    # Um id de correlação que atravessa a API e o worker: o documento. Quem o põe
-    # no MDC é o serviço de upload (API) e o DocumentProcessor (worker); `msg` é o
-    # id da mensagem SQS, só do lado do worker. A etapa 10 troca isto por logs
-    # estruturados a sério.
-    level: "%5p [doc=%X{documentId:-} msg=%X{messageId:-}]"
+    # Em local o log é uma linha legível: `cid` é o id de correlação do pedido
+    # (Correlation), `doc` o id do documento e `msg` o id da mensagem SQS (só do
+    # lado do worker). No perfil aws o encoder escreve JSON em vez desta linha —
+    # ver application-aws.yml; em local, `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`
+    # liga o mesmo formato.
+    level: "%5p [cid=%X{correlationId:-} doc=%X{documentId:-} msg=%X{messageId:-}]"
