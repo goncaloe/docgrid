@@ -1,11 +1,16 @@
 package com.docgrid.pipeline;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+
+import com.docgrid.shared.Correlation;
 
 /**
  * As operações do SQS de que o pipeline precisa, por cima do {@link SqsClient} cru.
@@ -40,7 +45,10 @@ public class SqsQueues {
         return sqs.receiveMessage(r -> r.queueUrl(mainUrl())
                         .maxNumberOfMessages(MAX_MESSAGES_PER_RECEIVE)
                         .waitTimeSeconds((int) props.waitTime().toSeconds())
-                        .messageSystemAttributeNames(MessageSystemAttributeName.ALL))
+                        // Os de sistema (ApproximateReceiveCount) e os de utilizador — o
+                        // X-Correlation-Id que enviamos no redrive — vêm os dois.
+                        .messageSystemAttributeNames(MessageSystemAttributeName.ALL)
+                        .messageAttributeNames("All"))
                 .messages();
     }
 
@@ -68,7 +76,17 @@ public class SqsQueues {
 
     /** Devolve uma mensagem à fila principal — o reprocessamento a partir da DLQ. */
     public void sendToMain(String body) {
-        sqs.sendMessage(r -> r.queueUrl(mainUrl()).messageBody(body));
+        var request = SendMessageRequest.builder().queueUrl(mainUrl()).messageBody(body);
+        String correlationId = Correlation.current();
+        if (correlationId != null) {
+            request.messageAttributes(Map.of(
+                    Correlation.SQS_ATTRIBUTE,
+                    MessageAttributeValue.builder()
+                            .dataType("String")
+                            .stringValue(correlationId)
+                            .build()));
+        }
+        sqs.sendMessage(request.build());
     }
 
     private String mainUrl() {

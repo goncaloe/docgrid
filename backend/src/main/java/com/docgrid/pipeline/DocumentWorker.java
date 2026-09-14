@@ -14,10 +14,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 
 import com.docgrid.document.DocumentProcessor;
 import com.docgrid.document.ProcessingOutcome;
+import com.docgrid.shared.Correlation;
 import com.docgrid.shared.DomainException;
 
 /**
@@ -124,6 +126,7 @@ public class DocumentWorker implements SmartLifecycle {
      */
     private void handle(Message message) {
         MDC.put("messageId", message.messageId());
+        restoreCorrelation(message);
         try {
             List<S3ObjectReference> references = parser.parse(message.body());
             boolean ack = true;
@@ -147,6 +150,20 @@ public class DocumentWorker implements SmartLifecycle {
             log.error("Mensagem {}: {}; segue para a DLQ", message.messageId(), e.getMessage());
         } finally {
             MDC.remove("messageId");
+            Correlation.clear();
+        }
+    }
+
+    /**
+     * O id de correlação que veio como atributo de mensagem — só existe no que a
+     * aplicação envia (o redrive da DLQ); o caminho normal, via S3, não o tem e o
+     * elo passa pela base de dados. Um valor que não passa no saneamento não entra:
+     * um id inválido nos logs seria pior do que nenhum.
+     */
+    private static void restoreCorrelation(Message message) {
+        MessageAttributeValue attribute = message.messageAttributes().get(Correlation.SQS_ATTRIBUTE);
+        if (attribute != null && Correlation.isValid(attribute.stringValue())) {
+            Correlation.set(attribute.stringValue());
         }
     }
 
