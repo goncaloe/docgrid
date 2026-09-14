@@ -3,27 +3,11 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
 import type { DocumentSummaryResponse, PageResponse } from "../../api/types";
+import { formatAmount, formatDate } from "../../format";
 import { DocumentStatusBadge } from "./DocumentStatusBadge";
 
-const currencyFormatter = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const dateFormatter = new Intl.DateTimeFormat("pt-PT");
-
-function formatAmount(doc: DocumentSummaryResponse): string {
-  if (doc.totalAmount === null) return "—";
-  const amount = currencyFormatter.format(doc.totalAmount);
-  return doc.currency !== null ? `${amount} ${doc.currency}` : amount;
-}
-
-/**
- * `issueDate` é um `LocalDate` — uma data de calendário, sem hora nem fuso. Passá-la ao
- * `new Date()` faria dela meia-noite UTC, que a oeste de Greenwich se lê como o dia
- * anterior. Constrói-se a data no fuso local a partir dos três números.
- */
-function formatLocalDate(isoDate: string): string {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  if (year === undefined || month === undefined || day === undefined) return isoDate;
-  return dateFormatter.format(new Date(year, month - 1, day));
-}
+/** `createdAt` é uma `Instant` — ISO com fuso; `new Date()` parseia correctamente, o que `formatDate` não faz. */
+const instantFormatter = new Intl.DateTimeFormat("pt-PT");
 
 const columns: ColumnDef<DocumentSummaryResponse>[] = [
   { header: "Fornecedor (NIF)", accessorKey: "supplierTaxId", cell: (info) => info.getValue<string | null>() ?? "—" },
@@ -33,10 +17,14 @@ const columns: ColumnDef<DocumentSummaryResponse>[] = [
     accessorKey: "issueDate",
     cell: (info) => {
       const value = info.getValue<string | null>();
-      return value === null ? "—" : formatLocalDate(value);
+      return value === null ? "—" : formatDate(value);
     },
   },
-  { header: "Total", id: "totalAmount", cell: (info) => formatAmount(info.row.original) },
+  {
+    header: "Total",
+    id: "totalAmount",
+    cell: (info) => formatAmount(info.row.original.totalAmount, info.row.original.currency),
+  },
   {
     header: "Estado",
     accessorKey: "status",
@@ -45,7 +33,7 @@ const columns: ColumnDef<DocumentSummaryResponse>[] = [
   {
     header: "Submetido em",
     accessorKey: "createdAt",
-    cell: (info) => dateFormatter.format(new Date(info.getValue<string>())),
+    cell: (info) => instantFormatter.format(new Date(info.getValue<string>())),
   },
 ];
 

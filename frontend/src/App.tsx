@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireRole } from "./auth/RequireRole";
 import { LoginPage } from "./features/auth/LoginPage";
+import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { DocumentsListPage } from "./features/documents/DocumentsListPage";
 import { ReviewPage } from "./features/review/ReviewPage";
 import { ReviewQueuePage } from "./features/review/ReviewQueuePage";
@@ -31,6 +32,18 @@ export function App() {
           <RequireAuth>
             <AppShellLayout>
               <UploadPage />
+            </AppShellLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <RequireAuth>
+            <AppShellLayout>
+              <RequireRole allowed={REVIEW_ROLES}>
+                <DashboardPage />
+              </RequireRole>
             </AppShellLayout>
           </RequireAuth>
         }

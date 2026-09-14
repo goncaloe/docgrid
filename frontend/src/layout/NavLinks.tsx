@@ -1,5 +1,5 @@
 import { NavLink, Stack } from "@mantine/core";
-import { IconFileUpload, IconFiles, IconListCheck } from "@tabler/icons-react";
+import { IconChartBar, IconFileUpload, IconFiles, IconListCheck } from "@tabler/icons-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
@@ -28,6 +28,17 @@ export function NavLinks() {
         leftSection={<IconFileUpload size={18} />}
         active={location.pathname === "/upload"}
       />
+      {canReview && (
+        <>
+          <NavLink
+            component={RouterNavLink}
+            to="/dashboard"
+            label="Dashboard"
+            leftSection={<IconChartBar size={18} />}
+            active={location.pathname === "/dashboard"}
+          />
+        </>
+      )}
       {canReview && (
         <NavLink
           component={RouterNavLink}

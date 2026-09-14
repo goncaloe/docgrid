@@ -179,3 +179,79 @@ export interface ProblemDetail {
   detail?: string;
   instance?: string;
 }
+
+// --- dashboard ---
+
+export interface DashboardPeriodTotals {
+  documents: number;
+  net: number;
+  vat: number;
+  total: number;
+}
+
+export interface DashboardOperations {
+  /** Documentos cujo estado já saiu de UPLOADED/PROCESSING/FAILED (por `created_at`). */
+  processedDocuments: number;
+  /** Fração 0–1 de documentos que nunca passaram por revisão humana; `null` sem documentos processados. */
+  automationRate: number | null;
+  /** Segundos entre a primeira passagem a NEEDS_REVIEW e a decisão; `null` sem ciclos concluidos. */
+  averageReviewSeconds: number | null;
+}
+
+export interface DashboardMonthlyTotal {
+  /** "yyyy-MM" */
+  month: string;
+  documents: number;
+  net: number;
+  vat: number;
+  total: number;
+}
+
+export interface DashboardCategoryTotal {
+  /** `null` = "sem categoria" — o rótulo é do frontend, nunca da API. */
+  category: string | null;
+  documents: number;
+  total: number;
+}
+
+export interface DashboardSupplierTotal {
+  taxId: string;
+  name: string;
+  documents: number;
+  total: number;
+}
+
+export interface DashboardResponse {
+  totals: DashboardPeriodTotals;
+  operations: DashboardOperations;
+  monthly: DashboardMonthlyTotal[];
+  categories: DashboardCategoryTotal[];
+  topSuppliers: DashboardSupplierTotal[];
+}
+
+// --- exports ---
+
+export interface CreateExportRequest {
+  /** Entre 2020 e o ano corrente (validação `@Min`/`@Max` do backend). */
+  year: number;
+  /** 1–12 */
+  month: number;
+}
+
+export interface ExportResponse {
+  id: string;
+  year: number;
+  month: number;
+  documentCount: number;
+  netTotal: number;
+  vatTotal: number;
+  total: number;
+  createdAt: string;
+  /** Aprovados sem `issue_date` que ficaram fora do ficheiro. */
+  documentsWithoutDate: number;
+}
+
+export interface ExportFileUrlResponse {
+  url: string;
+  expiresAt: string;
+}

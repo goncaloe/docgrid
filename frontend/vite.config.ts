@@ -17,5 +17,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    // Os 5 s por omissão são curtos com 10+ workers paralelos numa máquina lenta
+    // (esta suite gasta >300 s de CPU em Windows): falhas espúrias por timeout.
+    testTimeout: 10_000,
   },
 });
