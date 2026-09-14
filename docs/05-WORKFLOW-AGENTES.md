@@ -15,10 +15,11 @@ ou outro. As especificidades de cada uma estão nos apêndices, no fim.
 │ 4. Rever e aprovar o plano ← O TEU TRABALHO REAL            │
 │ 5. Escrever o plano        docs/plans/STAGE-NN-plano.md     │
 │ 6. Implementar             procedimento "implementar etapa" │
-│ 7. Verificar               npm test · diff · revisão        │
-│ 8. Commits                 pequenos, à medida               │
-│ 9. Handoff                 procedimento "handoff"           │
-│ 10. Fechar                 sessão limpa outra vez           │
+│ 7. Verificar               npm test · diff                  │
+│ 8. Rever (opcional)        revisão crítica, se compensar    │
+│ 9. Commits                 pequenos, à medida               │
+│ 10. Handoff                procedimento "handoff"           │
+│ 11. Fechar                 sessão limpa outra vez           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,7 +96,7 @@ Sessão A — modelo forte          Sessão B — modelo rápido
 /arrancar-etapa 03               /implementar-etapa 03
   plano discutido e aprovado       lê docs/plans/STAGE-03-plano.md
   escrito em docs/plans/           implementa, commits pequenos
-  commit + fecha                   npm test · diff · revisão
+  commit + fecha                   npm test · diff · revisão opcional
                                    /handoff 03
 ```
 
@@ -185,11 +186,27 @@ uma sessão exausta.
 
 ## Antes de cada commit
 
+Sempre:
+
 - **Vê o diff.** Lê mesmo. É a última barreira antes de código que não sabes explicar.
+- `npm test` — não confies em "os testes devem passar".
+- **Revisão de segurança** nas etapas 02, 06 e 11 (upload, autenticação, infraestrutura).
+
+Opcional, e a decisão é tua a cada commit:
+
 - **Revisão da alteração** — se a ferramenta tiver revisor integrado, usa-o; se não, pede
   explicitamente uma revisão crítica do que acabou de escrever.
-- **Revisão de segurança** nas etapas 02, 06 e 11 (upload, autenticação, infraestrutura).
-- `npm test` — não confies em "os testes devem passar".
+
+Vale a pena pedi-la quando o diff é grande ou saiu do que o plano previa; quando quem
+implementou foi o modelo rápido, sem a discussão de design; quando a alteração mexe em
+valores, datas, graus de confiança ou estados do documento — as partes onde um erro passa
+nos testes e só se vê na fila de revisão; ou quando a etapa correu numa sessão só, sem plano
+escrito a servir de rede.
+
+Salta-a quando o diff é pequeno, o leste todo e percebeste-o, e os testes cobrem o que mudou.
+Pedir revisão a cada commit de três linhas ensina-te a ler o resultado em diagonal — e isso é
+pior do que não a pedir, porque o hábito fica de pé para o dia em que ela apanhar mesmo
+alguma coisa.
 
 ## Anti-padrões
 
@@ -227,8 +244,9 @@ e `/handoff 03`.
 | **auto** | Só para tarefas repetitivas e reversíveis, com o git limpo antes de começares. |
 
 Contexto: `/context` mostra o que ocupa a janela, `/compact` resume, `/clear` limpa,
-`/rewind` (ou duplo Esc) desfaz código e conversa. Antes do commit: `/diff`, `/code-review`,
-`/security-review`. Modelo e esforço: `/model` e `/effort` (de `low` a `xhigh`, mais `max`).
+`/rewind` (ou duplo Esc) desfaz código e conversa. Antes do commit: `/diff` sempre,
+`/code-review` quando compensar (ver "Antes de cada commit") e `/security-review` nas etapas
+02, 06 e 11. Modelo e esforço: `/model` e `/effort` (de `low` a `xhigh`, mais `max`).
 
 O plano faz-se com o modelo mais capaz, a implementação com o rápido. Para o ciclo em duas
 sessões:
@@ -238,7 +256,7 @@ Sessão A — modelo forte             Sessão B — modelo rápido
 /model                              /model
 /plan (ou Shift+Tab)                /implementar-etapa 03
 /arrancar-etapa 03                  Shift+Tab → acceptEdits
-  aprovas, sai do plan mode         npm test · /diff · /code-review
+  aprovas, sai do plan mode         npm test · /diff · /code-review opcional
   escreve docs/plans/ + commit      /handoff 03
 /clear                              /clear
 ```
@@ -278,7 +296,7 @@ escrito em disco até o plano ser aprovado (alternar com `Alt+Shift+P`).
 | `/compact` | Resumir o contexto a meio de uma etapa |
 | `/new` | Sessão limpa: entre planear e implementar, e entre etapas depois do handoff |
 | `/diff` | Rever o diff antes do commit (template em `.agents/commands/`, lido pelo oh-my-pi) |
-| `/code-review` | Revisão crítica das alterações antes do commit |
+| `/code-review` | Revisão crítica das alterações, opcional (ver "Antes de cada commit") |
 | `/security-review` | Revisão de segurança nas etapas 02, 06 e 11 |
 | `/reload-plugins` | Recarregar skills, comandos e prompts sem reiniciar |
 
@@ -289,7 +307,7 @@ sessões:
 Sessão A — modelo forte             Sessão B — modelo rápido
 /model                              /model
 plan mode                           /skill:implementar-etapa 03
-/skill:arrancar-etapa 03            /diff · /code-review
+/skill:arrancar-etapa 03            /diff · /code-review opcional
   aprovas, sai do plan mode         /skill:handoff 03
   escreve docs/plans/ + commit      /new
 /new
