@@ -4,7 +4,7 @@
 # dependency layer - see docs/adr/0017 (1 GB memory budget).
 
 # --- Build stage -------------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /build
 COPY pom.xml .
 # Resolve dependencies before any code: the Docker layer cache reuses them while
