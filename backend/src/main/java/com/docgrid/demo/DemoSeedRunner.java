@@ -212,6 +212,7 @@ class DemoSeedRunner implements ApplicationRunner {
             }
             UUID documentId = submit(team.employee(), invoice, invoice.slug() + ".pdf");
             awaitProcessed(documentId, invoice.slug());
+            requireOurOwnExtraction(documentId, invoice);
             submitted.put(documentId, invoice);
             documentBySlug.put(invoice.slug(), documentId);
             if (submitted.size() % 10 == 0) {
@@ -270,6 +271,31 @@ class DemoSeedRunner implements ApplicationRunner {
         throw new IllegalStateException(
                 "O documento %s ficou em %s mais de %s. O worker está a correr? O `npm run seed` precisa da fila do LocalStack (`npm run infra`)."
                         .formatted(label, statusOf(documentId), properties.waitPerDocument()));
+    }
+
+    /**
+     * Confirma que foi o extractor deste processo a ler o documento, e não outro.
+     *
+     * <p>A fila é partilhada: uma aplicação deixada a correr com {@code npm run up} tem um
+     * worker seu, com o {@code StubExtractor} e a sua fixture única, e apanha uma parte das
+     * mensagens. Os documentos que ela processa ficam todos com a mesma fatura — a
+     * demonstração fica estragada e nada o diz. Mais vale parar aqui, com a razão à vista.
+     */
+    private void requireOurOwnExtraction(UUID documentId, DemoInvoice invoice) {
+        String taxId = jdbc.sql("select supplier_tax_id from documents where id = :id")
+                .param("id", documentId)
+                .query(String.class)
+                .optional()
+                .orElse(null);
+        if (invoice.fields().supplierTaxId().equals(taxId)) {
+            return;
+        }
+        throw new IllegalStateException(
+                ("O documento %s foi processado por outro worker: ficou com o NIF %s em vez de %s. "
+                                + "Há outra instância da aplicação a consumir a fila — provavelmente um `npm run up` "
+                                + "deixado a correr. Pára-a, corre `npm run down`, depois `npm run seed`, e só então "
+                                + "`npm run up`.")
+                        .formatted(invoice.slug(), taxId, invoice.fields().supplierTaxId()));
     }
 
     /**

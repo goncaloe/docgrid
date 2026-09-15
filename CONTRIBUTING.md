@@ -10,9 +10,12 @@ Precisas de **Docker**, **JDK 21** e **Node 20.6+**. O Maven não é preciso: o 
 traz o Maven Wrapper.
 
 ```bash
-npm run up      # infraestrutura (Postgres + LocalStack) e a aplicação no perfil local
-npm run seed    # 60 faturas de demonstração, com histórico
+npm run seed    # infraestrutura (Postgres + LocalStack) e os dados de demonstração
+npm run up      # a aplicação no perfil local, já com dados
 ```
+
+O seed corre primeiro e sozinho: os documentos são processados pelo worker do próprio
+processo do seed, e uma aplicação já a correr disputava-lhe as mensagens da fila.
 
 Frontend, noutro terminal:
 

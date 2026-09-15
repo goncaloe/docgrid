@@ -11,8 +11,8 @@ custa gravá-lo em condições.
 
 ```bash
 npm run down            # base limpa: o percurso abaixo depende dos dados do seed
+npm run seed            # semeia e termina (≈ 30 s) — antes do `npm run up`, sempre
 npm run up              # deixa a correr
-npm run seed            # noutro terminal (≈ 15 s)
 cd frontend && npm run dev
 ```
 

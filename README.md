@@ -16,9 +16,14 @@ DocGrid lê-as, valida-as contra as regras fiscais portuguesas e diz onde é pre
 local com dois comandos e dados a sério:
 
 ```bash
-npm run up      # Postgres, LocalStack e a aplicação (deixa a correr)
-npm run seed    # 61 documentos com seis meses de histórico, noutro terminal
+npm run seed    # levanta a infraestrutura, semeia 61 documentos e termina (≈ 30 s)
+npm run up      # a aplicação, já com dados; deixa a correr
 ```
+
+**Por esta ordem.** O seed põe os ficheiros no S3 e deixa o *worker do seu próprio processo*
+processá-los pela fila. Se já houver uma aplicação a correr, o worker dela apanha parte das
+mensagens e processa-as com o stub — metade dos documentos ficavam iguais. O seed deteta-o e
+pára com a explicação, mas é mais simples não o provocar.
 
 Depois, `cd frontend && npm install && npm run dev` e entra em http://localhost:5173:
 
@@ -144,16 +149,19 @@ o Maven Wrapper.
 
 ```bash
 git clone <repo> && cd docgrid
-npm run up          # infraestrutura + aplicação, no perfil local
+npm run seed        # infraestrutura + os dados de demonstração; termina sozinho
+npm run up          # a aplicação, no perfil local; fica a correr
 ```
 
 Noutro terminal:
 
 ```bash
 curl localhost:8080/actuator/health     # {"status":"UP"}
-npm run seed                            # os dados da demonstração
 cd frontend && npm install && npm run dev
 ```
+
+Sem dados de demonstração, salta o `npm run seed`: o `npm run up` levanta a infraestrutura
+na mesma.
 
 Não é preciso configurar nada: sem ficheiro `.env`, tudo arranca com valores por omissão.
 Para mudar portas ou palavra-passe, copia o `.env.example` para `.env`.
@@ -179,7 +187,7 @@ O CI corre tudo em quatro fluxos (backend, frontend, infraestrutura, segurança 
 | Comando | O que faz |
 | --- | --- |
 | `npm run up` | Levanta a infraestrutura e arranca a aplicação no perfil `local` |
-| `npm run seed` | Semeia 61 documentos de demonstração com seis meses de histórico |
+| `npm run seed` | Semeia 61 documentos de demonstração com seis meses de histórico, e termina. **Antes** do `npm run up` |
 | `npm run infra` | Só Postgres e LocalStack — para correres a aplicação no IDE |
 | `npm run down` | Pára tudo e apaga os volumes |
 | `npm test` | Testes do backend, com Testcontainers |
