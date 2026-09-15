@@ -273,4 +273,8 @@ Preenchido por **quem implementa, à medida que acontece** — não no fim, não
 
 | Passo | O que o plano dizia | O que ficou | Detalhe ou decisão |
 |---|---|---|---|
-| | | | |
+| 2 | Corrigir os galeguismos dos ADRs 0017-0019, do README, de `docs/02` e `docs/04` | Também `alarmas`→`alarmes` (ADR 0019) e `con`→`com` (`docs/02`, tabela de ambientes); o README foi limpo já aqui, embora o passo 8 o reescreva | Detalhe |
+| 3 | `DemoInvoice` com `slug`, campos, confianças, geometrias e o caso | O record tem também `suggestedCategory` — a categoria habitual do fornecedor, que o seed usa para aprovar e alimentar o histórico e o gráfico por categoria | Detalhe |
+| 3 | Três ficheiros no pacote (`package-info`, `DemoInvoice`, `DemoInvoiceCatalog`) | Mais um: `DemoCase.java`. O enum dos casos plantados fica em ficheiro próprio, como os outros enums do projeto (`DocumentStatus`, `FieldSource`) | Detalhe |
+| 3 | O teste verifica que os NIFs válidos "passam no `TaxIdRule`" | `TaxIdRule` é package-private (`com.docgrid.validation`) e o teste não lhe acede: o módulo 11 é reimplementado no teste a partir da especificação, como implementação de referência independente | Detalhe |
+| 3 | `DemoInvoiceCatalog` gera N faturas determinísticas | Recebe também a data de referência (`new DemoInvoiceCatalog(count, today)`): sem isso as faturas não caem nos últimos seis meses de quem corre o seed e a regra da data plausível mandava-as todas para revisão | Detalhe |
