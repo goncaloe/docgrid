@@ -58,6 +58,17 @@ Um teste de persistência anota-se com `@RepositoryTest`
 `replace = NONE` sem o qual o Spring troca o Postgres por uma base embutida — e o teste
 passa a provar outra coisa, sem se queixar.
 
+A base de dados vem vazia no início de cada classe: o `DatabaseCleanupListener`
+(`support/`) trunca as tabelas antes de cada uma, para que nenhuma classe herde as
+linhas de outra. Não é preciso anotar nada nem pedir nada. Dentro da mesma classe,
+porém, os métodos continuam a partilhar a base — um teste que conte ou some sobre a
+organização inteira ou é `@Transactional`, ou cria a sua própria organização. Ver
+`docs/adr/0020-isolamento-de-dados-nos-testes.md`.
+
+Uma configuração de teste que semeie dados ao nível do contexto tem de implementar
+`TestDataSeeder`: senão a limpeza leva-os e o contexto fica a apontar para linhas que
+já não existem.
+
 ## Commits
 
 Conventional Commits, em português. A mensagem de commit é explicação, e as explicações
