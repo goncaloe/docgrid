@@ -2,29 +2,140 @@
 
 [![CI](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml)
 [![Imagem](https://github.com/goncaloe/docgrid/actions/workflows/image.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/image.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-informational)](LICENSE)
 
+**Uma PME recebe 200 faturas por mês e alguém as copia à mão para a contabilidade. O
+DocGrid lê-as, valida-as contra as regras fiscais portuguesas e diz onde é preciso olhar.**
 
-Plataforma de processamento automático de faturas e despesas. Submetes um PDF ou uma foto
-de uma fatura; o sistema extrai os campos (fornecedor, NIF, número, data, base, IVA, total),
-valida-os contra regras de negócio e classifica o documento como pronto a aprovar ou a
-precisar de revisão humana.
+![Revisão de uma fatura no DocGrid: o PDF à esquerda, os campos extraídos à direita, o campo incerto assinalado e a caixa correspondente a acender sobre o documento](docs/media/review.gif)
 
-**O sistema não substitui o humano — reduz-lhe o trabalho e diz-lhe onde olhar.** Documentos
-com baixa confiança ou que falhem validação vão para uma fila de revisão manual, com o grau
-de confiança de cada campo visível até à interface.
+## A demonstração
 
-Projeto de portefólio, em construção. Domínio fiscal português: NIF com dígito de controlo,
-IVA a 6%, 13% e 23%.
+**Não há URL pública** — não há conta AWS, por decisão
+([ADR 0019](docs/adr/0019-infraestrutura-como-desenho.md)). A demonstração levanta-se em
+local com dois comandos e dados a sério:
 
-## Stack
+```bash
+npm run up      # Postgres, LocalStack e a aplicação (deixa a correr)
+npm run seed    # 61 documentos com seis meses de histórico, noutro terminal
+```
 
-| Camada | Tecnologia |
-| --- | --- |
-| Backend | Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway |
-| Testes | JUnit 5, AssertJ, Testcontainers |
-| Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine |
-| AWS | S3, SQS, Textract, RDS, EC2 t4g.micro *(ver [ADR 0017](docs/adr/0017-computacao-e-rede-na-aws.md))* |
-| Local | Docker Compose com Postgres e LocalStack |
+Depois, `cd frontend && npm install && npm run dev` e entra em http://localhost:5173:
+
+| Entra como | Email | O que vê |
+| --- | --- | --- |
+| Assistente financeiro | `finance@docgrid.local` | A fila de revisão inteira — é o ecrã a ver primeiro |
+| Gestor | `gestor@docgrid.local` | O mesmo, mais as despesas acima do limite de aprovação |
+| Funcionário | `joao@docgrid.local` | Só as despesas que ele próprio submeteu |
+| Administrador | `admin@docgrid.local` | Tudo, incluindo a dead-letter queue |
+
+A password é `docgrid-demo` nos quatro. Vale só para o LocalStack desta máquina: não é o
+segredo de nada que exista fora dela.
+
+## A arquitetura
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React + TypeScript"]
+    CF["CloudFront<br/>fronteira única"]
+    S3[("S3<br/>documentos")]
+    API["API Spring Boot<br/>REST + JWT"]
+    SQS["SQS"]
+    DLQ["DLQ"]
+    Worker["Worker<br/>mesmo código, outro perfil"]
+    TX["Textract<br/>(stub em local)"]
+    PG[("PostgreSQL<br/>projeção, campos, eventos")]
+
+    Browser -->|"1 · pede autorização"| CF --> API
+    Browser -->|"2 · upload direto, URL pré-assinado"| S3
+    S3 -->|"3 · ObjectCreated"| SQS
+    SQS -->|"4 · consome"| Worker
+    SQS -.->|"3 entregas falhadas"| DLQ
+    Worker -->|"5 · extrai"| TX
+    Worker -->|"6 · valida e guarda"| PG
+    API --> PG
+```
+
+O ficheiro nunca passa pela API: o browser recebe uma autorização e escreve direto no S3
+([ADR 0005](docs/adr/0005-upload-com-url-pre-assinado.md)). Quem processa é o worker, do
+outro lado de uma fila.
+
+## O problema
+
+Uma PME recebe entre 100 e 300 faturas por mês. Alguém abre cada PDF e copia à mão para o
+software de contabilidade: NIF, número, data, base tributável, IVA, total. São 3 a 4
+minutos por documento — umas dez horas por mês — e os erros de digitação acabam na
+declaração de IVA.
+
+O DocGrid reduz esse trabalho de "escrever tudo" para "verificar o que o sistema não teve a
+certeza". **Não substitui o humano: reduz-lhe o trabalho e diz-lhe onde olhar.** Um
+documento com um campo abaixo do limiar de confiança, com uma soma que não fecha, com um
+NIF cujo dígito de controlo falha ou que já foi submetido antes vai para uma fila de
+revisão, com o motivo escrito. O resto chega pronto a aprovar.
+
+## O ciclo de vida de um documento
+
+```mermaid
+stateDiagram-v2
+    [*] --> UPLOADED
+    UPLOADED --> PROCESSING
+    PROCESSING --> EXTRACTED: tudo bate certo
+    PROCESSING --> NEEDS_REVIEW: alguma regra falhou
+    PROCESSING --> FAILED: erro técnico
+    EXTRACTED --> APPROVED
+    EXTRACTED --> NEEDS_REVIEW
+    EXTRACTED --> REJECTED
+    NEEDS_REVIEW --> APPROVED: corrigido e confirmado
+    NEEDS_REVIEW --> REJECTED
+    FAILED --> PROCESSING: reprocessamento manual
+    APPROVED --> EXPORTED: fecho do período
+    REJECTED --> [*]
+    EXPORTED --> [*]
+```
+
+Onze transições em sessenta e quatro pares possíveis; as outras cinquenta e três são
+recusadas pelo próprio enum `DocumentStatus`, e um teste percorre a matriz inteira. Cada
+transição deixa em `document_events` quem a fez, quando e porquê — o histórico não se
+apaga, e um documento aprovado nunca volta atrás.
+
+## Decisões técnicas
+
+**Uma fila entre o upload e a extração.** Extrair uma fatura demora segundos e depende de um
+serviço externo; fazê-lo dentro do pedido HTTP prendia o browser e perdia o trabalho a cada
+reinício. O S3 notifica o SQS, o worker consome, e uma mensagem que falha três vezes acaba
+numa dead-letter queue com ecrã próprio para a inspecionar e reprocessar.
+→ [ADR 0008](docs/adr/0008-escolha-de-sqs-e-desenho-do-worker.md)
+
+**O SQS entrega pelo menos uma vez, nunca exatamente uma vez.** A mesma mensagem chega
+repetida e o sistema tem de não se importar: quem processa reclama o documento numa
+transação (a chave do S3 é chave primária de `processing_claims`, por isso só um vencedor),
+e a escrita do resultado — projeção, campos, validações, evento — é outra transação, toda ou
+nenhuma. Uma segunda entrega encontra o trabalho feito e apaga-se a si própria.
+→ [ADR 0007](docs/adr/0007-idempotencia-do-worker.md)
+
+**Postgres, e não DynamoDB.** As perguntas deste produto são por critério e por intervalo
+("deste fornecedor, entre março e junho, por aprovar") e agregadas (totais por mês, por
+categoria). No DynamoDB cada uma pede um índice desenhado de antemão, e as agregações não
+têm resposta direta. Os ficheiros ficam no S3, que é o sítio deles; tudo o resto vive numa
+base relacional com chaves estrangeiras a sério.
+→ [ADR 0021](docs/adr/0021-postgres-como-armazenamento-unico.md)
+
+**A confiança acompanha o valor até ao ecrã.** Cada campo extraído é uma linha, não uma
+coluna, precisamente para caber ali o grau de confiança do motor e a origem (máquina ou
+pessoa). O ecrã de revisão mostra o PDF à esquerda e os campos à direita; um campo incerto
+vem assinalado e, ao recebê-lo o foco, a caixa que o motor leu acende sobre o documento.
+Corrigir um campo marca-o como escrito por uma pessoa — e aí deixa de haver incerteza para
+declarar. → [ADR 0003](docs/adr/0003-desenho-de-extracted-fields.md) ·
+[ADR 0010](docs/adr/0010-motor-de-validacao-e-servico-de-aprovacao.md)
+
+**A infraestrutura está escrita e nunca foi aplicada.** O ambiente AWS inteiro está em
+Terraform — VPC sem NAT, RDS, SQS com DLQ, CloudFront com duas origens, IAM mínimo,
+alarmes — validado com `validate`, `tflint`, `checkov` e `shellcheck`. Sem conta AWS, fica
+a um `apply` de ser real, com custo zero e nada para gerir.
+→ [ADR 0019](docs/adr/0019-infraestrutura-como-desenho.md) · [`docs/COSTS.md`](docs/COSTS.md)
+
+Os 21 registos de decisão estão indexados em [`docs/adr/README.md`](docs/adr/README.md),
+com o que cada um decide numa linha.
 
 ## Como correr
 
@@ -33,41 +144,49 @@ o Maven Wrapper.
 
 ```bash
 git clone <repo> && cd docgrid
-npm run up
+npm run up          # infraestrutura + aplicação, no perfil local
 ```
 
 Noutro terminal:
 
 ```bash
 curl localhost:8080/actuator/health     # {"status":"UP"}
+npm run seed                            # os dados da demonstração
+cd frontend && npm install && npm run dev
 ```
 
 Não é preciso configurar nada: sem ficheiro `.env`, tudo arranca com valores por omissão.
 Para mudar portas ou palavra-passe, copia o `.env.example` para `.env`.
 
-## Imagem no ghcr.io
-
-O CI publica a imagem multi-arquitetura (amd64 + arm64) em `ghcr.io/goncaloe/docgrid`, etiquetada com o SHA do commit e também como `latest`. Depois de levantar a infraestrutura local com `npm run infra`, faça o pull e execute:
+## Testes
 
 ```bash
-docker pull ghcr.io/goncaloe/docgrid:latest
-docker run --rm -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local -e DOCGRID_S3_ENDPOINT=http://host.docker.internal:4566 -e DOCGRID_SQS_ENDPOINT=http://host.docker.internal:4566 -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/docgrid ghcr.io/goncaloe/docgrid:latest
+npm test                                  # backend: JUnit 5 + Testcontainers
+cd frontend && npm test                   # frontend: Vitest + Testing Library + MSW
 ```
 
-Em Linux sem Docker Desktop, substitua `host.docker.internal` por `127.0.0.1`. Verifique a saúde em `localhost:8080/actuator/health`.
+Nada de mocks para o Postgres nem para o S3: os testes de integração correm contra um
+Postgres e um LocalStack verdadeiros, em Testcontainers, com o mesmo script de arranque que
+o `docker compose` local usa. O pipeline inteiro — upload, notificação, fila, worker,
+idempotência, validação — é exercitado como corre em produção. O `npm run seed` tem o seu
+próprio teste de ponta a ponta, com quatro faturas.
 
+O CI corre tudo em quatro fluxos (backend, frontend, infraestrutura, segurança com
+`gitleaks` e CodeQL) e publica a imagem multi-arquitetura em `ghcr.io/goncaloe/docgrid`.
 
 ## Comandos
 
 | Comando | O que faz |
 | --- | --- |
 | `npm run up` | Levanta a infraestrutura e arranca a aplicação no perfil `local` |
+| `npm run seed` | Semeia 61 documentos de demonstração com seis meses de histórico |
 | `npm run infra` | Só Postgres e LocalStack — para correres a aplicação no IDE |
 | `npm run down` | Pára tudo e apaga os volumes |
 | `npm test` | Testes do backend, com Testcontainers |
 | `npm run lint` | Verifica a formatação |
 | `npm run format` | Corrige a formatação |
 | `npm run logs` | Segue os logs dos containers |
+| `npm run image:build` / `image:run` | Constrói e corre a imagem do backend |
 
 > Não há `Makefile`: o `make` não é garantido no Windows e o Node já é preciso para o
 > frontend. A decisão está em [`docs/adr/0002`](docs/adr/0002-ambiente-local-e-comandos.md).
@@ -77,77 +196,44 @@ Em Linux sem Docker Desktop, substitua `host.docker.internal` por `127.0.0.1`. V
 ```
 backend/         API e worker Spring Boot, organizados por funcionalidade
   src/main/java/com/docgrid/
-    document/      submissão, estados, consulta
-    extraction/    extração de campos (Textract e stub local)
-    validation/    motor de regras
-    supplier/      fornecedores
-    export/        exportação contabilística
-    auth/          autenticação e papéis
+    document/      submissão, estados, consulta, processamento
+    extraction/    extração de campos (Textract, stub local, demonstração)
+    validation/    motor de regras (NIF, IVA, aritmética, duplicados, confiança)
+    supplier/      fornecedores e sugestão de categoria
+    dashboard/     read model: agregações, só leitura
+    export/        fecho de período e geração do CSV
+    auth/          autenticação JWT, papéis e isolamento por organização
+    demo/          dados de demonstração (perfil `demo`, nunca em produção)
     shared/        configuração, exceções, utilitários
-docker/          scripts de arranque do LocalStack
 frontend/        aplicação React (Vite + TypeScript + Mantine)
-  src/
-    api/           cliente HTTP, tipos da API, chamadas de autenticação e documentos
-    auth/          contexto de sessão e guardas de rota por papel
-    layout/        navegação lateral, cabeçalho, indicador de fila de revisão
-    features/      páginas por funcionalidade (auth, documents, review, upload)
+  src/features/    auth, documents, review, upload, dashboard, exports
+infra/terraform/ o ambiente AWS, escrito e validado — nunca aplicado
+docker/          arranque do LocalStack (bucket, filas, notificação S3→SQS)
+docs/            produto, arquitetura, convenções, roteiro, ADRs, handoffs
 scripts/         utilitários dos comandos npm
 ```
 
-## Frontend
+## Limitações conhecidas
 
-O frontend é um projeto Node à parte, com o seu próprio `package.json`:
+Honestidade vale mais do que uma lista de funcionalidades futuras:
 
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173, com proxy de /api para o backend em :8080
-```
+- **Não há deploy nem URL pública.** O Terraform está escrito e validado, nunca aplicado —
+  sem conta AWS, por decisão ([ADR 0019](docs/adr/0019-infraestrutura-como-desenho.md)).
+- **Não há ecrã de registo nem gestão de utilizadores.** Cria-se uma organização por
+  `POST /api/auth/register`; os utilizadores da demonstração são criados pelo `npm run seed`.
+- **O CSV de uma exportação cai na dead-letter queue.** O bucket notifica a fila em todos os
+  objetos criados, e o CSV que o fecho de período escreve não é um documento: o worker
+  regista o aviso e a mensagem acaba na DLQ. Uma mensagem por período fechado, sem efeito
+  nos dados. A correção é filtrar a notificação por prefixo, no LocalStack e no Terraform.
+- **A extração em local é simulada.** O Textract não existe no LocalStack: em local corre o
+  stub (uma fixture fixa) e, no perfil `demo`, um extractor que lê os valores do catálogo de
+  faturas geradas. O código do Textract está escrito e testado contra respostas reais
+  guardadas ([ADR 0009](docs/adr/0009-analyze-expense-e-geometria-dos-campos.md)).
+- **Uma organização por registo, sem convites.** O isolamento por organização é imposto em
+  todas as consultas, mas não há forma de convidar alguém para a nossa.
+- **A porta 8080** tem de estar livre; se estiver ocupada, `SERVER_PORT=8081 npm run up`.
 
-Para a aplicação falar com o backend, tens de ter `npm run up` a correr noutro terminal.
-Uma conta cria-se por `POST /api/auth/register` (não há ecrã de registo) — usa o Swagger
-UI em `localhost:8080/swagger-ui.html` ou o exemplo `curl` no handoff da etapa 06.
+## Licença
 
-| Comando | O que faz |
-| --- | --- |
-| `npm run dev` | Servidor de desenvolvimento do Vite |
-| `npm run build` | Verificação de tipos e build de produção |
-| `npm test` | Testes com Vitest, Testing Library e MSW |
-| `npm run lint` | ESLint |
-
-## Ambiente local
-
-O `docker-compose.yml` levanta apenas a infraestrutura; a aplicação corre no host, para o
-ciclo de alteração e reinício ser imediato.
-
-| | Local | AWS |
-| --- | --- | --- |
-| Armazenamento | LocalStack S3 | S3 |
-| Fila | LocalStack SQS | SQS + DLQ |
-| Base de dados | Postgres em Docker | RDS Postgres |
-| Extração | stub local | Textract |
-
-Nenhuma credencial AWS real é necessária para desenvolver. O LocalStack cria no arranque o
-bucket `docgrid-documents` e a fila `docgrid-document-processing`.
-
-## Estado
-
-- Etapa atual: 11 — IaC, CI/CD e AWS.  
-- O que deixou feito: testes de liveness e readiness (`/actuator/health/readiness`).  
-- CI com quatro fluxos: backend, frontend, infra, segurança.  
-- Imagem multi-arquitetura publicada em `ghcr.io`.  
-- Terraform do ambiente AWS escrito e validado (nunca aplicado, sem conta AWS).  
-- ADRs 0017-0019 e `docs/COSTS.md`.  
-- Ver o handoff da etapa em `docs/handoffs/`.
-
-Para ver os logs em JSON em local: `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (em local o padrão é uma linha legível com `cid=`, `doc=` e `msg=`).
-
-## Estado do deploy
-
-Não existe URL pública nem deploy real.  
-Não há conta AWS: a infraestrutura do ambiente está escrita em Terraform (infra/terraform), validada (validate, tflint, checkov, shellcheck, hadolint) mas nunca aplicada – ver docs/adr/0019-infraestrutura-como-desenho.md.  
-O CI (GitHub Actions) testa, analisa, vigia segredos e publica a imagem multi-arquitetura em ghcr.io.  
-Custos estimados e como desligar tudo: docs/COSTS.md.
-Evoluções possíveis (fora do roteiro): integração real com software de contabilidade e o
-**SAF-T** completo — o formato XML que a autoridade tributária portuguesa usa para as
-declarações de IVA — na mesma linha da exportação mensal.
+[MIT](LICENSE). Contribuições: [`CONTRIBUTING.md`](CONTRIBUTING.md). As regras do
+repositório — stack, convenções, âmbito — vivem todas em [`AGENTS.md`](AGENTS.md).
