@@ -1,20 +1,50 @@
 # Ecosystem dependency updates, weekly. Only the four lockfiles; CI actions update
 # through the same channel.
+#
+# The `ignore` blocks below pin exactly what AGENTS.md fixes under "Stack fixa" —
+# Java 21, Spring Boot 3.x, React 18 — and nothing else. Without them Dependabot
+# keeps proposing upgrades the project has already decided against (Spring Boot 4,
+# React 19, Temurin 25), which cannot be merged and only add noise. Every other
+# major is still offered: choosing them is the author's call, not Dependabot's.
 version: 2
 updates:
   - package-ecosystem: "maven"
     directory: "/backend"
     schedule:
       interval: "weekly"
+    ignore:
+      # Spring Boot 3.x
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    ignore:
+      # React 18 — the types travel with it, or npm ci fails on the peer range.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
       interval: "weekly"
+    ignore:
+      # Java 21 — both the build stage (maven:*-eclipse-temurin-21) and the runtime
+      # stage (eclipse-temurin:21-jre-alpine).
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "maven"
+        update-types: ["version-update:semver-major"]
