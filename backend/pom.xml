@@ -22,7 +22,7 @@
     <palantir-java-format.version>2.98.0</palantir-java-format.version>
     <awssdk.version>2.54.17</awssdk.version>
     <jjwt.version>0.13.0</jjwt.version>
-    <springdoc-openapi.version>2.8.5</springdoc-openapi.version>
+    <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
   </properties>
 
   <dependencyManagement>
