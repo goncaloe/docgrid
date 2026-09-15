@@ -56,7 +56,6 @@ pnpm-debug.log*
 
 # Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
@@ -65,6 +64,8 @@ crash.log
 crash.*.log
 override.tf
 override.tf.json
+# .terraform.lock.hcl é versionado de propósito: fixa versões e checksums dos providers
+# (ver plano da etapa 11). O `.gitignore` não o ignora.
 
 # Docker / LocalStack
 docker-compose.override.yml
