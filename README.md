@@ -233,6 +233,10 @@ Honestidade vale mais do que uma lista de funcionalidades futuras:
   objetos criados, e o CSV que o fecho de período escreve não é um documento: o worker
   regista o aviso e a mensagem acaba na DLQ. Uma mensagem por período fechado, sem efeito
   nos dados. A correção é filtrar a notificação por prefixo, no LocalStack e no Terraform.
+- **A taxa de automação do dashboard conta a categorização como intervenção humana.**
+  Escolher a categoria no momento de aprovar grava um evento `FIELD_CORRECTED`, e a métrica
+  trata qualquer um deles como "alguém teve de lá tocar" — mesmo quando os campos extraídos
+  não foram alterados. Dá um número mais pessimista do que a realidade.
 - **A extração em local é simulada.** O Textract não existe no LocalStack: em local corre o
   stub (uma fixture fixa) e, no perfil `demo`, um extractor que lê os valores do catálogo de
   faturas geradas. O código do Textract está escrito e testado contra respostas reais
