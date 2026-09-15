@@ -3,6 +3,13 @@
 # Ativa três coisas e mais nada: o catálogo de faturas, a extração que as lê pelo marcador
 # do PDF e o runner que semeia. A imagem de produção nunca ativa este perfil — e se o
 # ativasse, o seed abortava à primeira, porque já lá haveria dados.
+# O seed corre, semeia e sai: não serve pedidos a ninguém. Numa porta fixa colidia com a
+# aplicação do `npm run up`, que está a correr no outro terminal — e morria antes de
+# começar. Porta zero é uma porta efémera que ninguém precisa de saber qual é.
+# (Desligar o servidor web por completo não serve: a configuração de segurança é web.)
+server:
+  port: 0
+
 docgrid:
   demo:
     count: ${DOCGRID_DEMO_COUNT:60}
