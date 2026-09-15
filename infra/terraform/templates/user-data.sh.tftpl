@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034,SC2154
+# Instance user-data (Amazon Linux 2023). Runs once at first boot: swap, Docker,
+# SSM parameters -> .env, compose + Caddy, systemd. Everything this machine does
+# lives here - it is cattle, not a pet.
+# (SC2034/SC2154: this is a Terraform template - ${project_name}, ${region},
+#  ${compose_yml}... are rendered in, and the DB_* vars are used in the .env heredoc
+#  once rendered. Directives stay.)
+set -euo pipefail
+
+# --- 2 GiB swap: the t4g.micro has 1 GiB of RAM and the JVM + OS do not fit with room. ---
+dd if=/dev/zero of=/swapfile bs=1M count=2048
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+printf '/swapfile none swap sw 0 0\n' >> /etc/fstab
+
+# --- Docker + the compose plugin (AL2023 ships both in its repos). ---
+dnf install -y docker docker-compose-plugin
+systemctl enable --now docker
+
+mkdir -p /opt/docgrid
+
+# --- SSM parameters -> /opt/docgrid/.env (0600). --with-decryption uses the SSM KMS
+#     key (alias/aws/ssm), which the role can use via kms:Decrypt (see iam.tf). ---
+JWT_SECRET=$(aws ssm get-parameter --name /docgrid/jwt-secret --with-decryption --query Parameter.Value --output text)
+DB_PASSWORD=$(aws ssm get-parameter --name /docgrid/db-password --with-decryption --query Parameter.Value --output text)
+DB_URL=$(aws ssm get-parameter --name /docgrid/db-url --query Parameter.Value --output text)
+DB_USER=$(aws ssm get-parameter --name /docgrid/db-user --query Parameter.Value --output text)
+
+umask 077
+cat > /opt/docgrid/.env <<EOF
+SPRING_PROFILES_ACTIVE=aws,worker
+DOCGRID_DB_URL=$${DB_URL}
+DOCGRID_DB_USER=$${DB_USER}
+DOCGRID_DB_PASSWORD=$${DB_PASSWORD}
+DOCGRID_QUEUE=${project_name}-document-processing
+DOCGRID_DLQ=${project_name}-document-processing-dlq
+DOCGRID_BUCKET=${project_name}-documents
+AWS_REGION=${region}
+JWT_SECRET=$${JWT_SECRET}
+EOF
+chmod 600 /opt/docgrid/.env
+
+# --- Compose file and Caddyfile (rendered by Terraform; quoted heredoc delimiter
+#     means bash expands nothing). ---
+cat > /opt/docgrid/compose.yml <<'COMPOSE'
+${compose_yml}
+COMPOSE
+
+cat > /opt/docgrid/Caddyfile <<'CADDY'
+${caddyfile}
+CADDY
+
+# --- First boot ---
+cd /opt/docgrid
+docker compose up -d
+
+# --- Survive reboots: bare `docker compose up -d` does not. ---
+cat > /etc/systemd/system/docgrid-compose.service <<'UNIT'
+[Unit]
+Description=DocGrid docker compose
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/docgrid
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now docgrid-compose.service

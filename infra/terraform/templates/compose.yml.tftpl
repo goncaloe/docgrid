@@ -1,0 +1,27 @@
+services:
+  app:
+    image: ${image_reference}
+    restart: unless-stopped
+    # The .env written by user-data: profile aws+worker, DB/S3/SQS/JWT parameters.
+    env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /docgrid/app
+        awslogs-region: ${region}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - app
