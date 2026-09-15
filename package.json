@@ -10,7 +10,9 @@
     "test": "node scripts/mvnw.mjs verify",
     "lint": "node scripts/mvnw.mjs spotless:check",
     "format": "node scripts/mvnw.mjs spotless:apply",
-    "logs": "docker compose logs -f"
+    "logs": "docker compose logs -f",
+    "image:build": "docker build -t docgrid:local backend",
+    "image:run": "docker run --rm -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local -e DOCGRID_S3_ENDPOINT=http://host.docker.internal:4566 -e DOCGRID_SQS_ENDPOINT=http://host.docker.internal:4566 -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/docgrid docgrid:local"
   },
   "engines": {
     "node": ">=20.6"

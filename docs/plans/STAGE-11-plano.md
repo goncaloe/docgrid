@@ -509,4 +509,5 @@ para quem retomar.
 
 | Passo | O que o plano dizia | O que ficou | Detalhe ou decisão |
 |---|---|---|---|
+| 1 | HEALTHCHECK e probes assumidos atingíveis sem token | `SecurityConfig` só tornava público `/actuator/health` (caminho exato); `/actuator/health/readiness` dava 401, o que partia o HEALTHCHECK da imagem e as probes do ECS. Alargado o público a `/actuator/health/**`; os detalhes continuam `when-authorized` e o resto do actuator (`prometheus`, `metrics`) continua ADMIN. | Detalhe de execução |
 | | | | |

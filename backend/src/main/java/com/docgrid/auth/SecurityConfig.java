@@ -35,7 +35,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
-        "/api/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health", "/actuator/info"
+        "/api/auth/**",
+        "/swagger-ui.html",
+        "/swagger-ui/**",
+        "/v3/api-docs/**",
+        // /actuator/health/** (grupos liveness/readiness e componentes) é público: as
+        // probes de container e orquestração não podem autenticar. Os detalhes ficam
+        // protegidos por `show-details: when-authorized`; o resto do actuator não.
+        "/actuator/health/**",
+        "/actuator/info"
     };
 
     private final ObjectMapper objectMapper;
