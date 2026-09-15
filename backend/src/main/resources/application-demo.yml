@@ -14,10 +14,3 @@ docgrid:
     # que verificar; é sempre a fila que não está a ser consumida.
     wait-per-document: 60s
     auto-run: true
-
-logging:
-  level:
-    # O seed relata o progresso; o ruído do worker a cada mensagem não interessa aqui.
-    com.docgrid.demo: INFO
-    com.docgrid.pipeline: WARN
-    com.docgrid.document: WARN
