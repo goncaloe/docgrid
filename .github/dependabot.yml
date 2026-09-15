@@ -21,6 +21,13 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    groups:
+      # AGENTS.md requires @mantine/charts to stay aligned with @mantine/core, and
+      # the rest of the Mantine packages share a release train too. One grouped pull
+      # request, or they drift apart a major at a time.
+      mantine:
+        patterns:
+          - "@mantine/*"
     ignore:
       # React 18 — the types travel with it, or npm ci fails on the peer range.
       - dependency-name: "react"
@@ -42,9 +49,12 @@ updates:
     schedule:
       interval: "weekly"
     ignore:
-      # Java 21 — both the build stage (maven:*-eclipse-temurin-21) and the runtime
-      # stage (eclipse-temurin:21-jre-alpine).
+      # Java 21 in the runtime stage (eclipse-temurin:21-jre-alpine).
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
+      # The build stage (maven:3.9-eclipse-temurin-21) is ignored outright, not by
+      # update type: Dependabot versions it on the Maven part, so 3.9 -> 3 reads as a
+      # downgrade while the Java suffix rides along to 26 unnoticed — no update type
+      # can say "stay on temurin-21". Nothing is lost by pinning it: the tag floats,
+      # so Maven patch releases arrive on the next build anyway.
       - dependency-name: "maven"
-        update-types: ["version-update:semver-major"]
