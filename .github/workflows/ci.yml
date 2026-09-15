@@ -80,7 +80,7 @@ jobs:
       - name: ShellCheck
         run: shellcheck infra/terraform/templates/user-data.sh.tftpl docker/localstack/init/ready.d/*.sh
       - name: Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: backend/Dockerfile
           # `config`, não `config-file`: a acção não tem esse input e ignorava o
