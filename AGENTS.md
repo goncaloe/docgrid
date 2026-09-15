@@ -77,7 +77,9 @@ apenas invólucros finos destes ficheiros. O procedimento vive aqui.
 Java 21, Spring Boot 3.x, Maven, PostgreSQL 16, Flyway, Testcontainers, JUnit 5, Spotless.
 React 18 + TypeScript + Vite, TanStack Query, Mantine (componentes e estilos),
 @mantine/charts (gráficos do dashboard, alineado co @mantine/core), TanStack Table.
-AWS: S3, SQS, Textract, RDS, ECS Fargate, CloudWatch. Terraform para IaC.
+AWS: S3, SQS, Textract, RDS, EC2 t4g.micro, CloudWatch. A elección da computación
+(EC2 contra ECS Fargate) e o desenho da rede estão justificados en
+`docs/adr/0017-computacion-e-rede-en-aws.md`.
 LocalStack + Docker Compose para desenvolvimento local (imagem do LocalStack na linha 4.x:
 as mais recentes exigem token de licença).
 

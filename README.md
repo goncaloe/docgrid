@@ -1,5 +1,9 @@
 # DocGrid
 
+[![CI](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml)
+[![Imaxe](https://github.com/goncaloe/docgrid/actions/workflows/image.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/image.yml)
+
+
 Plataforma de processamento automático de faturas e despesas. Submetes um PDF ou uma foto
 de uma fatura; o sistema extrai os campos (fornecedor, NIF, número, data, base, IVA, total),
 valida-os contra regras de negócio e classifica o documento como pronto a aprovar ou a
@@ -19,7 +23,7 @@ IVA a 6%, 13% e 23%.
 | Backend | Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway |
 | Testes | JUnit 5, AssertJ, Testcontainers |
 | Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine |
-| AWS | S3, SQS, Textract, RDS, ECS Fargate *(a partir da etapa 02)* |
+| AWS | S3, SQS, Textract, RDS, EC2 t4g.micro *(ver [ADR 0017](docs/adr/0017-computacion-e-rede-en-aws.md))* |
 | Local | Docker Compose com Postgres e LocalStack |
 
 ## Como correr
@@ -40,6 +44,18 @@ curl localhost:8080/actuator/health     # {"status":"UP"}
 
 Não é preciso configurar nada: sem ficheiro `.env`, tudo arranca com valores por omissão.
 Para mudar portas ou palavra-passe, copia o `.env.example` para `.env`.
+
+## Imaxe no ghcr.io
+
+O CI publica a imagem multi-arquitetura (amd64 + arm64) em `ghcr.io/goncaloe/docgrid`, etiquetada com o SHA do commit e também como `latest`. Depois de levantar a infraestrutura local com `npm run infra`, faça o pull e execute:
+
+```bash
+docker pull ghcr.io/goncaloe/docgrid:latest
+docker run --rm -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local -e DOCGRID_S3_ENDPOINT=http://host.docker.internal:4566 -e DOCGRID_SQS_ENDPOINT=http://host.docker.internal:4566 -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/docgrid ghcr.io/goncaloe/docgrid:latest
+```
+
+Em Linux sem Docker Desktop, substitua `host.docker.internal` por `127.0.0.1`. Verifique a saúde em `localhost:8080/actuator/health`.
+
 
 ## Comandos
 
@@ -116,16 +132,22 @@ bucket `docgrid-documents` e a fila `docgrid-document-processing`.
 
 ## Estado
 
-Etapa atual: 10 — observabilidade. O id de correlação atravessa API → fila → worker (e o
-documento guarda-o), os logs estruturados em JSON ligam-se no perfil `aws`, e há cinco
-métricas em `/actuator/prometheus` mais o estado do pipeline em
-`/api/admin/pipeline/stats`. O `/actuator/health` reporta cada dependência separadamente.
+- Etapa atual: 11 — IaC, CI/CD e AWS.  
+- O que deixou feito: testes de liveness e readiness (`/actuator/health/readiness`).  
+- CI com quatro fluxos: backend, frontend, infra, segurança.  
+- Imagem multi-arquitetura publicada em `ghcr.io`.  
+- Terraform do ambiente AWS escrito e validado (nunca aplicado, sem conta AWS).  
+- ADRs 0017-0019 e `docs/COSTS.md`.  
+- Ver o handoff da etapa en `docs/handoffs/`.
 
-Para ver os logs em JSON localmente, liga o formatador por variável de ambiente:
-`LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (em local o padrão é uma linha legível
-com `cid=`, `doc=` e `msg=`). As métricas e o endpoint de estatísticas são território de
-`ADMIN`.
+Para ver os logs en JSON en local: `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (en local o padrón é unha liña lexible con `cid=`, `doc=` e `msg=`).
 
+## Estado do deploy
+
+Não existe URL pública nem deploy real.  
+Não há conta AWS: a infraestrutura do ambiente está escrita em Terraform (infra/terraform), validada (validate, tflint, checkov, shellcheck, hadolint) mas nunca aplicada – ver docs/adr/0019-infraestrutura-como-deseno.md.  
+O CI (GitHub Actions) testa, analisa, vigia segredos e publica a imagem multi-arquitectura em ghcr.io.  
+Custos estimados e como desligar tudo: docs/COSTS.md.
 Evoluções possíveis (fora do roteiro): integração real com software de contabilidade e o
 **SAF-T** completo — o formato XML que a autoridade tributária portuguesa usa para as
-declarações de IVA — na mesma linha da exportação mensal.
+declarações de IVA — na mesma linha da exportação mensual.

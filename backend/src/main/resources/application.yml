@@ -6,8 +6,10 @@ spring:
   profiles:
     default: local
     group:
-      # Em local, um só processo corre a API e o worker da fila. Em AWS são
-      # serviços separados: `aws` sozinho para a API, `aws,worker` para o worker.
+      # Em local, um só processo corre a API e o worker da fila. O ambiente AWS
+      # também os executa no mesmo processo (`aws,worker`), por custo — uma instância
+      # pequena contra dois serviços separados (ver docs/adr/0017). O desenho suporta
+      # separá-los (perfil `aws` sozinho), mas não é o que este ambiente corre.
       # Ver docs/adr/0008-escolha-de-sqs-e-desenho-do-worker.md.
       local: worker
   jpa:
