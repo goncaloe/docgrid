@@ -510,4 +510,6 @@ para quem retomar.
 | Passo | O que o plano dizia | O que ficou | Detalhe ou decisão |
 |---|---|---|---|
 | 1 | HEALTHCHECK e probes assumidos atingíveis sem token | `SecurityConfig` só tornava público `/actuator/health` (caminho exato); `/actuator/health/readiness` dava 401, o que partia o HEALTHCHECK da imagem e as probes do ECS. Alargado o público a `/actuator/health/**`; os detalhes continuam `when-authorized` e o resto do actuator (`prometheus`, `metrics`) continua ADMIN. | Detalhe de execução |
+| 2 | 1 teste (`HealthProbesTest`), total 325 | `HealthProbesTest` ganhou um segundo caso — a readiness responde sem token (o contrato das probes de container). Total 326. O contexto novo custa ~17 s, muito abaixo do limite de 2 min. | Detalhe de execução |
+| 2 | `ApplicationContextTest` ficava verde | Com as probes ativas o corpo do `/actuator/health` ganhou o campo `groups`; o teste fixava a string exata e partiu. Afirma agora o contrato (estado UP/DOWN no corpo), não a string. | Detalhe de execução |
 | | | | |

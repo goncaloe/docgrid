@@ -94,8 +94,16 @@ management:
     health:
       # Sem autenticação, o corpo é apenas {"status":"UP"}. Detalhes de
       # infraestrutura não se expõem a quem não está autenticado.
-      # As probes de liveness e readiness chegam na etapa 11, com o ECS.
       show-details: when-authorized
+      # Probes de liveness/readiness para o container e a orquestração: atingíveis sem
+      # token (o caminho é público no SecurityConfig), mas com o mesmo when-authorized
+      # nos detalhes. A readiness inclui só o db; s3, sqs e extractor reportam-se no
+      # /actuator/health mas não derrubam a probe (ver HealthProbesTest).
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
       # Os indicadores próprios tocam em serviços (S3, SQS); 10 s evitam uma rajada
       # de chamadas atrás de cada pedido ao /actuator/health.
       cache:

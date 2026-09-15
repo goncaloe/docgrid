@@ -43,8 +43,11 @@ class ApplicationContextTest {
         // O endpoint responde sempre; o estado depende das dependências. Num contexto
         // sem LocalStack o S3 e o SQS estão em baixo e o estado geral é DOWN (o health
         // reflete isso, ver ADR 0016). O que se afirma é que o actuator responde — nunca
-        // 404 nem 401 — e que o corpo é um health JSON válido.
+        // 404 nem 401 — e que o corpo é um health JSON válido com um estado UP ou DOWN.
+        // (O corpo tem ainda o campo "groups" desde que as probes existem — não é
+        // contrato fixá-lo aqui.)
         assertThat(response.getStatusCode().value()).isIn(200, 503);
-        assertThat(response.getBody()).isIn("{\"status\":\"UP\"}", "{\"status\":\"DOWN\"}");
+        String status = response.getBody();
+        assertThat(status).containsAnyOf("\"status\":\"UP\"", "\"status\":\"DOWN\"");
     }
 }
