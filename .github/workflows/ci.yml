@@ -83,12 +83,21 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: backend/Dockerfile
-          config-file: .hadolint.yaml
+          # `config`, não `config-file`: a acção não tem esse input e ignorava o
+          # ficheiro em silêncio, deixando passar as regras que o .hadolint.yaml
+          # explica porque devem ficar de fora.
+          config: .hadolint.yaml
 
   security:
     name: Secrets + CodeQL
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # O analyze do CodeQL publica o SARIF na API de code scanning; sem isto o passo
+    # falha com "Resource not accessible by integration". O permissions do topo é só
+    # contents: read, e declarar aqui não o alarga aos outros jobs.
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
         with:
