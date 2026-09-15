@@ -1,0 +1,112 @@
+# CI: tests, static analysis, Terraform, secrets and CodeQL in parallel.
+# Runs on push to main and on any pull request. The backend Testcontainers run on
+# ubuntu-latest (it ships Docker); the ARM runner is used by the image job (image.yml).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (test + lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Backend tests (Testcontainers + Postgres + LocalStack)
+        run: npm test
+      - name: Format check (Spotless)
+        run: npm run lint
+
+  frontend:
+    name: Frontend (lint + typecheck + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  infra:
+    name: Infra (terraform + tflint + checkov + shellcheck + hadolint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: terraform-linters/setup-tflint@v4
+      - name: Terraform main - init (offline) + validate + fmt
+        run: |
+          terraform -chdir=infra/terraform init -backend=false
+          terraform -chdir=infra/terraform validate
+          terraform -chdir=infra/terraform fmt -check -recursive
+      - name: Terraform bootstrap - init (offline) + validate + fmt
+        run: |
+          terraform -chdir=infra/terraform/bootstrap init -backend=false
+          terraform -chdir=infra/terraform/bootstrap validate
+          terraform -chdir=infra/terraform/bootstrap fmt -check -recursive
+      - name: TFLint
+        run: tflint --chdir=infra/terraform
+      - name: Checkov
+        run: |
+          pip install -q checkov
+          checkov -d infra/terraform
+      - name: ShellCheck
+        run: shellcheck infra/terraform/templates/user-data.sh.tftpl docker/localstack/init/ready.d/*.sh
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          config-file: .hadolint.yaml
+
+  security:
+    name: Secrets + CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Personal account: gitleaks-action is free. Real state: see docs/COSTS.md.
+      - name: Gitleaks (whole history)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java, javascript-typescript
+      # Manual Java build with Spotless off: autobuild would run Maven and Spotless is
+      # bound to the validate phase (see the stage-11 plan, "Risks").
+      - name: Java build for CodeQL
+        run: node scripts/mvnw.mjs -Dspotless.check.skip=true -DskipTests package
+      - uses: github/codeql-action/analyze@v3

@@ -1,0 +1,7 @@
+# DL3059: the two consecutive RUNs are deliberate - dependency:go-offline is the
+# cache layer (see the Dockerfile), consolidating would rebuild deps on every code
+# change. DL3025: the HEALTHCHECK command is necessarily shell form; the ENTRYPOINT
+# is already JSON array notation, and this hadolint version flags the health CMD.
+ignored:
+  - DL3059
+  - DL3025

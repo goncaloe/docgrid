@@ -1,0 +1,10 @@
+# Gitleaks config for DocGrid.
+# Default ruleset + allowlist for test fixtures only. No production secret ever gets
+# allowed here: that would be the point of the whole job.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "MSW test fixture token (handlers.ts): fake JWT header with a literal '.signature' - not a secret. The production JWT secret lives in SSM (see ADR 0018)."
+paths = ["frontend/src/test/handlers.ts"]

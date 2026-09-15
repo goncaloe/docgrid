@@ -45,7 +45,7 @@ if ! sqs get-queue-url --queue-name "${DLQ}" 2>/dev/null | grep -q QueueUrl; the
     sqs create-queue --queue-name "${DLQ}" \
         --attributes MessageRetentionPeriod=1209600
 fi
-DLQ_URL=$(sqs get-queue-url --queue-name "${DLQ}" --query QueueUrl --output text)
+# Só a ARN: a DLQ_URL não se usa em nenhum comando (shellcheck SC2034).
 DLQ_ARN="arn:aws:sqs:${REGION}:${ACCOUNT}:${DLQ}"
 
 if ! sqs get-queue-url --queue-name "${QUEUE}" 2>/dev/null | grep -q QueueUrl; then
