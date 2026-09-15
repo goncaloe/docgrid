@@ -230,7 +230,8 @@ class DemoSeedRunner implements ApplicationRunner {
         submitted.entrySet().stream()
                 .filter(entry -> entry.getValue().demoCase() == DemoCase.DUPLICATE_ORIGINAL)
                 .findFirst()
-                .ifPresent(entry -> approve(team, team.manager(), entry.getKey(), entry.getValue()));
+                .ifPresent(entry -> approve(
+                        team, team.manager(), entry.getKey(), entry.getValue().suggestedCategory()));
     }
 
     /**
@@ -336,11 +337,23 @@ class DemoSeedRunner implements ApplicationRunner {
                 }
                 case CORRECT_AND_APPROVE -> {
                     boolean correctedAmount = correct(team, invoice, documentId);
-                    approve(team, correctedAmount ? team.manager() : approver(team, invoice), documentId, invoice);
+                    // Quem já esteve a rever o documento escolhe-lhe também a categoria.
+                    approve(
+                            team,
+                            correctedAmount ? team.manager() : approver(team, invoice),
+                            documentId,
+                            invoice.suggestedCategory());
                     approved.add(documentId);
                 }
                 case APPROVE -> {
-                    approve(team, approver(team, invoice), documentId, invoice);
+                    // Um documento que chega limpo aprova-se de seguida, e nem sempre com a
+                    // categoria escolhida à mão: gravá-la conta como correção humana e, se
+                    // fosse em todos, a taxa de automação do dashboard media outra coisa.
+                    approve(
+                            team,
+                            approver(team, invoice),
+                            documentId,
+                            random.nextInt(100) < 45 ? invoice.suggestedCategory() : null);
                     approved.add(documentId);
                 }
                 case LEAVE_PENDING -> pending++;
@@ -415,14 +428,10 @@ class DemoSeedRunner implements ApplicationRunner {
         return total != null && total.compareTo(new BigDecimal("1000.00")) > 0 ? team.manager() : team.finance();
     }
 
-    private void approve(Team team, DemoUser approver, UUID documentId, DemoInvoice invoice) {
+    /** @param category a categoria escolhida por quem aprova; {@code null} se aceitou o que lá estava */
+    private void approve(Team team, DemoUser approver, UUID documentId, String category) {
         identity.actAs(approver);
-        approvals.approve(
-                documentId,
-                team.organizationId(),
-                Actor.user(approver.userId()),
-                approver.role(),
-                invoice.suggestedCategory());
+        approvals.approve(documentId, team.organizationId(), Actor.user(approver.userId()), approver.role(), category);
     }
 
     private void reject(Team team, DemoUser reviewer, UUID documentId, String reason) {
