@@ -47,4 +47,31 @@ public record DemoInvoice(
     public ExtractionResult asExtractionResult() {
         return new ExtractionResult(fields, confidences, geometries);
     }
+
+    /** O valor deste campo como texto — a forma em que ele é guardado e corrigido. */
+    public String textOf(ExtractedFieldName field) {
+        return textOf(fields, field);
+    }
+
+    /**
+     * O mesmo, para quem ainda não tem a fatura montada: o catálogo precisa disto para
+     * saber que campos existem, e o seed para escrever a correção de um campo.
+     */
+    public static String textOf(InvoiceFields fields, ExtractedFieldName field) {
+        return switch (field) {
+            case SUPPLIER_NAME -> fields.supplierName();
+            case SUPPLIER_TAX_ID -> fields.supplierTaxId();
+            case INVOICE_NUMBER -> fields.invoiceNumber();
+            case ISSUE_DATE ->
+                fields.issueDate() == null ? null : fields.issueDate().toString();
+            case NET_AMOUNT ->
+                fields.netAmount() == null ? null : fields.netAmount().toPlainString();
+            case VAT_AMOUNT ->
+                fields.vatAmount() == null ? null : fields.vatAmount().toPlainString();
+            case VAT_RATE -> fields.vatRate() == null ? null : fields.vatRate().toPlainString();
+            case TOTAL_AMOUNT ->
+                fields.totalAmount() == null ? null : fields.totalAmount().toPlainString();
+            case CURRENCY, CATEGORY -> null;
+        };
+    }
 }

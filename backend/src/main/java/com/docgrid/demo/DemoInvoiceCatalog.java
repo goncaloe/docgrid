@@ -62,17 +62,17 @@ public class DemoInvoiceCatalog {
             new Supplier("Clínica Saúde Mais, Lda.", "Saúde ocupacional", 6),
             new Supplier("Estúdio Lumen, Lda.", "Marketing", 23));
 
+    /** As duas faturas a que falta um campo: a uma a data de emissão, à outra o número. */
+    private static final int MISSING_ISSUE_DATE_AT = 21;
+
+    private static final int MISSING_INVOICE_NUMBER_AT = 47;
+
     /**
      * Onde cada caso é plantado, por posição na lista. As posições são fixas para a
      * demonstração ser sempre a mesma; a cópia do duplicado vem propositadamente muito
      * depois do original, para o histórico parecer o que é — a mesma fatura submetida
      * outra vez, semanas depois.
      */
-    /** As duas faturas a que falta um campo: a uma a data de emissão, à outra o número. */
-    private static final int MISSING_ISSUE_DATE_AT = 21;
-
-    private static final int MISSING_INVOICE_NUMBER_AT = 47;
-
     private static final Map<Integer, DemoCase> PLANTED_CASES = plantedCases();
 
     /** Onde cada campo é lido na página, em coordenadas normalizadas 0–1. */
@@ -198,7 +198,7 @@ public class DemoInvoiceCatalog {
             Random random, InvoiceFields fields, DemoCase demoCase) {
         Map<ExtractedFieldName, BigDecimal> confidences = new EnumMap<>(ExtractedFieldName.class);
         for (ExtractedFieldName field : ExtractedFieldName.values()) {
-            if (valueOf(fields, field) != null) {
+            if (DemoInvoice.textOf(fields, field) != null) {
                 confidences.put(field, confidence(random, 0.88, 0.99));
             }
         }
@@ -253,24 +253,6 @@ public class DemoInvoiceCatalog {
             Map<String, Integer> sequenceBySupplier, Supplier supplier, LocalDate issueDate) {
         int sequence = sequenceBySupplier.merge(supplier.name(), 1, Integer::sum);
         return "FT %d/%04d".formatted(issueDate.getYear(), sequence);
-    }
-
-    private static String valueOf(InvoiceFields fields, ExtractedFieldName field) {
-        return switch (field) {
-            case SUPPLIER_NAME -> fields.supplierName();
-            case SUPPLIER_TAX_ID -> fields.supplierTaxId();
-            case INVOICE_NUMBER -> fields.invoiceNumber();
-            case ISSUE_DATE ->
-                fields.issueDate() == null ? null : fields.issueDate().toString();
-            case NET_AMOUNT ->
-                fields.netAmount() == null ? null : fields.netAmount().toPlainString();
-            case VAT_AMOUNT ->
-                fields.vatAmount() == null ? null : fields.vatAmount().toPlainString();
-            case VAT_RATE -> fields.vatRate() == null ? null : fields.vatRate().toPlainString();
-            case TOTAL_AMOUNT ->
-                fields.totalAmount() == null ? null : fields.totalAmount().toPlainString();
-            case CURRENCY, CATEGORY -> null;
-        };
     }
 
     /**

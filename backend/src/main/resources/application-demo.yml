@@ -1,0 +1,23 @@
+# O perfil dos dados de demonstração: `npm run seed` corre com `local,demo`.
+#
+# Ativa três coisas e mais nada: o catálogo de faturas, a extração que as lê pelo marcador
+# do PDF e o runner que semeia. A imagem de produção nunca ativa este perfil — e se o
+# ativasse, o seed abortava à primeira, porque já lá haveria dados.
+docgrid:
+  demo:
+    count: ${DOCGRID_DEMO_COUNT:60}
+    # A password comum aos quatro utilizadores semeados. Tal como as credenciais do
+    # LocalStack e o segredo JWT de `application-local.yml`, não é o segredo de nada que
+    # exista fora desta máquina — está no README para quem clona poder entrar.
+    password: ${DOCGRID_DEMO_PASSWORD:docgrid-demo}
+    # Quanto se espera que o worker acabe cada documento. Se estourar, a mensagem diz o
+    # que verificar; é sempre a fila que não está a ser consumida.
+    wait-per-document: 60s
+    auto-run: true
+
+logging:
+  level:
+    # O seed relata o progresso; o ruído do worker a cada mensagem não interessa aqui.
+    com.docgrid.demo: INFO
+    com.docgrid.pipeline: WARN
+    com.docgrid.document: WARN
