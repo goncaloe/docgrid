@@ -159,7 +159,7 @@ class DemoSeedRunner implements ApplicationRunner {
         Random random = new Random(SEED);
 
         Team team = createTeam();
-        log.info("Organização de demonstração criada, com {} utilizadores", 4);
+        log.info("Organização de demonstração criada, com os quatro utilizadores");
 
         Map<UUID, DemoInvoice> submitted = submitAll(team);
         log.info("{} documentos processados pelo worker", submitted.size());
@@ -204,17 +204,15 @@ class DemoSeedRunner implements ApplicationRunner {
      */
     private Map<UUID, DemoInvoice> submitAll(Team team) {
         Map<UUID, DemoInvoice> submitted = new LinkedHashMap<>();
-        Map<String, UUID> documentBySlug = new LinkedHashMap<>();
 
         for (DemoInvoice invoice : catalog.invoices()) {
             if (invoice.demoCase() == DemoCase.DUPLICATE_COPY) {
-                approveDuplicateOriginal(team, submitted, documentBySlug);
+                approveDuplicateOriginal(team, submitted);
             }
             UUID documentId = submit(team.employee(), invoice, invoice.slug() + ".pdf");
             awaitProcessed(documentId, invoice.slug());
             requireOurOwnExtraction(documentId, invoice);
             submitted.put(documentId, invoice);
-            documentBySlug.put(invoice.slug(), documentId);
             if (submitted.size() % 10 == 0) {
                 log.info(
                         "{} de {} documentos processados",
@@ -225,8 +223,7 @@ class DemoSeedRunner implements ApplicationRunner {
         return submitted;
     }
 
-    private void approveDuplicateOriginal(
-            Team team, Map<UUID, DemoInvoice> submitted, Map<String, UUID> documentBySlug) {
+    private void approveDuplicateOriginal(Team team, Map<UUID, DemoInvoice> submitted) {
         submitted.entrySet().stream()
                 .filter(entry -> entry.getValue().demoCase() == DemoCase.DUPLICATE_ORIGINAL)
                 .findFirst()
