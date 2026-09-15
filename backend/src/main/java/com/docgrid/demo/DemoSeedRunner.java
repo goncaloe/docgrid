@@ -237,11 +237,15 @@ class DemoSeedRunner implements ApplicationRunner {
      * total, e é ele que se rejeita com o motivo "duplicado".
      */
     private UUID resubmitOneFile(Team team) {
-        DemoInvoice invoice =
-                catalog.invoices().get(Math.min(1, catalog.invoices().size() - 1));
+        DemoInvoice invoice = resubmittedInvoice();
         UUID documentId = submit(team.employee(), invoice, invoice.slug() + "-reenvio.pdf");
         awaitProcessed(documentId, invoice.slug() + " (reenvio)");
         return documentId;
+    }
+
+    /** A fatura cujo ficheiro é submetido duas vezes. A segunda do catálogo, e sempre a mesma. */
+    private DemoInvoice resubmittedInvoice() {
+        return catalog.invoices().get(Math.min(1, catalog.invoices().size() - 1));
     }
 
     private UUID submit(DemoUser submitter, DemoInvoice invoice, String filename) {
@@ -475,9 +479,7 @@ class DemoSeedRunner implements ApplicationRunner {
      */
     private void ageHistory(Map<UUID, DemoInvoice> submitted, UUID resubmitted, Random random) {
         Map<UUID, DemoInvoice> all = new LinkedHashMap<>(submitted);
-        all.put(
-                resubmitted,
-                catalog.invoices().get(Math.min(1, catalog.invoices().size() - 1)));
+        all.put(resubmitted, resubmittedInvoice());
 
         for (Map.Entry<UUID, DemoInvoice> entry : all.entrySet()) {
             UUID documentId = entry.getKey();
