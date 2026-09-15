@@ -104,7 +104,7 @@ jobs:
           fetch-depth: 0
       # Personal account: gitleaks-action is free. Real state: see docs/COSTS.md.
       - name: Gitleaks (whole history)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-java@v4
