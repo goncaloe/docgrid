@@ -22,7 +22,7 @@
 | Imagem multi-arquitetura (amd64+arm64) | Só amd64 | O Graviton pede arm64 e quem clona corre amd64/Apple Silicon |
 | .terraform.lock.hcl versionado | Continuar a ignorá-lo | Fixa versões e checksums de providers |
 
-ADRs escritos: docs/adr/0017-computacion-e-rede-en-aws.md, docs/adr/0018-fronteira-registo-e-segredos.md, docs/adr/0019-infraestrutura-como-deseno.md
+ADRs escritos: docs/adr/0017-computacao-e-rede-na-aws.md, docs/adr/0018-fronteira-registo-e-segredos.md, docs/adr/0019-infraestrutura-como-desenho.md
 
 ## Desvios ao plano
 Plano seguido: docs/plans/STAGE-11-plano.md

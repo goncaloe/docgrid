@@ -1,51 +1,51 @@
-# DocGrid infrastructure on AWS
+# Infraestrutura do DocGrid na AWS
 
-> **Warning first:** this infrastructure has **never been applied**. It is written,
-> validated and reviewed, but there is no AWS account behind it: it is a design artifact,
-> one `apply` away from being real. ADR 0019 explains what this validates and what it
-> does **not** validate. There is no public URL, no deploy, nothing being billed.
+> **Aviso antes de tudo:** esta infraestrutura **nunca foi aplicada**. Está escrita,
+> validada e revista, mas não há conta AWS por trás: é um artefacto de desenho, a um
+> `apply` de ser real. O ADR 0019 explica o que isto valida e o que **não** valida.
+> Não há URL pública, não há deploy, não há nada a ser faturado.
 
-## What it would raise
+## O que levantaria
 
-A complete demo environment from a single `terraform apply`:
+Um ambiente de demonstração completo a partir de um único `terraform apply`:
 
-- VPC `10.0.0.0/16` with no NAT: one public subnet (the instance) and two private ones
-  (RDS), a free S3 gateway endpoint on both route tables, minimal security groups
-  (app: 80 from CloudFront only; db: 5432 from the app only).
-- RDS Postgres 16 (`db.t4g.micro`, 20 GB, encrypted, no backups - demo), S3 (documents
-  and site, both private and encrypted), main SQS queue + DLQ mirroring the local design
-  (`VisibilityTimeout=120`, `maxReceiveCount=3`).
-- A `t4g.micro` instance (ARM64, AL2023) running docker compose (app + Caddy); the
-  user-data reads the SSM parameters and a systemd unit survives reboots.
-- CloudFront with two origins: S3 for the SPA (OAC), the instance for `/api/*` with
-  `X-Origin-Verify`; CORS on the documents bucket for direct browser uploads.
-- CloudWatch: `/docgrid/app` log group (7 days), alarms for a full DLQ and a dead
-  instance, email notifications.
-- `bootstrap/` separately: the remote state bucket (versioned, SSE, private) and the
-  5 EUR budget alert **before** any paid resource.
+- VPC `10.0.0.0/16` sem NAT: uma subnet pública (a instância) e duas privadas (RDS), um
+  endpoint gateway de S3 gratuito nas duas tabelas de rotas, security groups mínimos
+  (aplicação: 80 só a partir do CloudFront; base de dados: 5432 só a partir da aplicação).
+- RDS Postgres 16 (`db.t4g.micro`, 20 GB, encriptado, sem backups — é demonstração), S3
+  (documentos e site, ambos privados e encriptados), fila SQS principal + DLQ a espelhar
+  o desenho local (`VisibilityTimeout=120`, `maxReceiveCount=3`).
+- Uma instância `t4g.micro` (ARM64, AL2023) a correr o docker compose (aplicação + Caddy);
+  o user-data lê os parâmetros do SSM e uma unidade systemd sobrevive aos reinícios.
+- CloudFront com duas origens: S3 para o SPA (OAC) e a instância em `/api/*` com
+  `X-Origin-Verify`; CORS no bucket de documentos para o upload direto do browser.
+- CloudWatch: log group `/docgrid/app` (7 dias), alarmes para a DLQ cheia e para a
+  instância morta, com notificação por email.
+- `bootstrap/` à parte: o bucket do estado remoto (com versionamento, SSE, privado) e o
+  alerta de orçamento de 5 EUR **antes** de qualquer recurso pago.
 
-Estimated monthly cost in the pricing section of `docs/COSTS.md` (~26 EUR).
+O custo mensal estimado está na secção de preços de `docs/COSTS.md` (~26 EUR).
 
-## Order
+## Ordem
 
-`bootstrap` first, always - the main configuration points its remote backend at the
-bucket bootstrap creates; without it, `terraform init` of the main configuration fails.
+`bootstrap` primeiro, sempre — a configuração principal aponta o backend remoto ao bucket
+que o bootstrap cria; sem ele, o `terraform init` da configuração principal falha.
 
 ```bash
-# 1. Bootstrap (local state, once)
+# 1. Bootstrap (estado local, uma única vez)
 cd infra/terraform/bootstrap
 terraform init
-terraform apply          # asks for the alert email (terraform.tfvars or -var)
+terraform apply          # pede o email do alerta (terraform.tfvars ou -var)
 
-# 2. Main configuration (remote state)
+# 2. Configuração principal (estado remoto)
 cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars   # fill in image_reference and alert_email
-terraform init            # uses the s3 backend of versions.tf (replace the literal bucket)
+cp terraform.tfvars.example terraform.tfvars   # preencher image_reference e alert_email
+terraform init            # usa o backend s3 do versions.tf (substituir o bucket literal)
 terraform plan
 terraform apply
 ```
 
-### While there is no AWS account - what can be verified offline
+### Enquanto não houver conta AWS — o que se verifica offline
 
 ```bash
 terraform -chdir=infra/terraform init -backend=false
@@ -58,38 +58,39 @@ checkov -d infra/terraform
 shellcheck infra/terraform/templates/user-data.sh.tftpl
 ```
 
-`terraform plan` still fails, and that is expected: the AWS provider calls
-`sts:GetCallerIdentity` while setting up, and the CloudFront prefix
-(`aws_ec2_managed_prefix_list`) contacts AWS during the plan only. Without credentials,
-`validate` is the ceiling. Never invent credentials or `mock_provider` to force a plan.
+O `terraform plan` continua a falhar, e é o esperado: o provider da AWS chama
+`sts:GetCallerIdentity` ao arrancar, e o prefixo do CloudFront
+(`aws_ec2_managed_prefix_list`) só contacta a AWS durante o plan. Sem credenciais, o
+`validate` é o teto. Nunca inventes credenciais nem um `mock_provider` para forçar um plan.
 
-## Known acceptances of this configuration (ADR 0019)
+## Aceitações conhecidas desta configuração (ADR 0019)
 
-- No NAT: the saving the brief assumed with VPC endpoints inverts at this scale; only
-  the free S3 gateway endpoint comes in.
-- No WAF, no flow logs, no RDS backups, no versioning on the content buckets, no
-  cross-region replication: all accepted by design, with the reason on each
-  `checkov:skip` and consolidated in ADR 0019.
-- The managed SSM Session Manager policy (`AmazonSSMManagedInstanceCore`) fails the
-  Terraform provider ARN validation; it attaches with one CLI command during `apply`:
+- Sem NAT: a poupança que o briefing assumia com VPC endpoints inverte-se a esta escala;
+  só entra o endpoint gateway de S3, que é gratuito.
+- Sem WAF, sem flow logs, sem backups do RDS, sem versionamento nos buckets de conteúdo,
+  sem replicação entre regiões: tudo aceite por desenho, com a razão em cada
+  `checkov:skip` e consolidado no ADR 0019.
+- A política gerida do SSM Session Manager (`AmazonSSMManagedInstanceCore`) não passa na
+  validação de ARN do provider do Terraform; anexa-se com um comando de CLI durante o
+  `apply`:
 
   ```bash
   aws iam attach-role-policy --role-name docgrid-instance \
     --policy-arn arn:aws:iam::policy/AmazonSSMManagedInstanceCore
   ```
 
-- The literal bucket in the `backend "s3"` block of `versions.tf` is replaced by the one
-  bootstrap creates (`docgrid-tfstate-<account_id>`).
+- O bucket literal no bloco `backend "s3"` do `versions.tf` substitui-se pelo que o
+  bootstrap cria (`docgrid-tfstate-<account_id>`).
 
-## Tearing it all down
+## Desligar tudo
 
 ```bash
-cd infra/terraform && terraform destroy   # the main configuration
-cd infra/terraform/bootstrap && terraform destroy   # state bucket and alert, last
+cd infra/terraform && terraform destroy   # a configuração principal
+cd infra/terraform/bootstrap && terraform destroy   # bucket de estado e alerta, por último
 ```
 
-A `terraform destroy` of the main configuration removes everything that bills; orphaned
-resources would be a failure of this stage (see its brief).
+Um `terraform destroy` da configuração principal remove tudo o que é faturado; recursos
+órfãos seriam uma falha desta etapa (ver o seu briefing).
 
-Pointers: prices and how to shut everything down in `docs/COSTS.md`; why this is written
-and not applied, in ADR `docs/adr/0019-infraestrutura-como-deseno.md`.
+Atalhos: preços e como desligar tudo em `docs/COSTS.md`; porque é que isto está escrito e
+não aplicado, no ADR `docs/adr/0019-infraestrutura-como-desenho.md`.

@@ -1,6 +1,6 @@
-# 0017 — Computación e rede en AWS
+# 0017 — Computação e rede na AWS
 
-**Estado:** aceptado · **Data:** 2026-09-15
+**Estado:** aceite · **Data:** 2026-09-15
 
 ## Contexto
 
@@ -11,7 +11,7 @@ O briefing da etapa 11 pede três decisões:
 
 O custo AWS importa: o alerta de orçamento é de 5 EUR ao mês.
 
-## Decisión 1 — EC2 t4g.micro + RDS, não Fargate
+## Decisão 1 — EC2 t4g.micro + RDS, não Fargate
 
 Fargate custa ~25 USD de serviços + 0,68 USD EBS + tráfego ao mês.
 Tem 0,5 GB de RAM por container.
@@ -27,7 +27,7 @@ O orçamento de memória manda.
 A JVM do Spring (perfil aws,worker, Flyway no arranque) cabe em 1 GB.
 Usa os limites `-XX:MaxRAMPercentage=40` e `-XX:+UseSerialGC` do Dockerfile.
 
-## Decisión 2 — Rede sem NAT e sem endpoints de interface
+## Decisão 2 — Rede sem NAT e sem endpoints de interface
 
 A conta não fecha a esta escala.
 Cinco endpoints de interface custam entre 36 e 73 USD/mês.
@@ -44,7 +44,7 @@ Não tem IP elástico.
 O ambiente nasce e morre com o Terraform.
 A origem do CloudFront usa o `public_dns`.
 
-## Decisión 3 — SSM Session Manager em vez de SSH
+## Decisão 3 — SSM Session Manager em vez de SSH
 
 Porta 22 fechada.
 Sem chaves a perder.

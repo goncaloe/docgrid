@@ -1,6 +1,6 @@
 # 0018 — Fronteira, registo e segredos
 
-**Estado:** aceptado · **Data:** 2026-09-15
+**Estado:** aceite · **Data:** 2026-09-15
 
 ## Contexto
 

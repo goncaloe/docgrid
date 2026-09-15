@@ -1,6 +1,6 @@
 # 0019 — Infraestrutura como desenho
 
-**Estado:** aceptado · **Data:** 2026-09-15
+**Estado:** aceite · **Data:** 2026-09-15
 
 ## Contexto
 
@@ -38,7 +38,7 @@ O objetivo é manter a prova de conceito sem criar recursos.
 - `terraform init` com backend S3 real: substituir o bucket literal em `versions.tf`.
 - `terraform plan`.
 - `terraform apply`.
-- Verificação manual das pontas: health, upload, fila, alarmas.
+- Verificação manual das pontas: health, upload, fila, alarmes.
 - No final da demonstração, `terraform destroy`: configuração principal primeiro, bootstrap por último.
 
 ## Observações aceites

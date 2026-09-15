@@ -36,7 +36,7 @@ API e worker vivem no mesmo repositório e partilham o modelo de domínio; o des
 suporta executá-los como processos separados (perfis Spring `api` e `worker`), que escalam
 independentemente. Contudo, este ambiente AWS executa os dois no mesmo processo (perfil
 `aws,worker`), por razões de custo: uma instância pequena representa uma fração do preço de
-dois serviços separados. Referência: `docs/adr/0017-computacion-e-rede-en-aws.md`.
+dois serviços separados. Referência: `docs/adr/0017-computacao-e-rede-na-aws.md`.
 
 ## Decisões estruturantes
 
@@ -82,7 +82,7 @@ sinal técnico do que usar DynamoDB para impressionar.
 | Fila | LocalStack SQS | SQS + DLQ |
 | Extração | `StubExtractor` | Textract |
 | Base de dados | Postgres em Docker | RDS Postgres |
-| Execução | Docker Compose | EC2 t4g.micro con Docker Compose |
+| Execução | Docker Compose | EC2 t4g.micro com Docker Compose |
 
 O objetivo é `npm run up` levantar tudo localmente sem uma única credencial AWS real.
 
@@ -95,7 +95,7 @@ Este ambiente está desenhado em Terraform sob infra/terraform, mas não se enco
 - Entrega e configuração: CloudFront com duas origens (S3 para o SPA, EC2 para /api/*); segredos em SSM Parameter Store.
 - Observabilidade: CloudWatch com log group e alarmas.
 
-A segurança não expõe portas além da 80, permitida apenas para a origem do CloudFront; a administração é feita por SSM Session Manager e o IAM segue mínimos privilégios. Os custos estimados e o desligamento completo estão documentados em docs/COSTS.md; a validação e as limitações do Terraform constam em docs/adr/0019-infraestrutura-como-deseno.md.
+A segurança não expõe portas além da 80, permitida apenas para a origem do CloudFront; a administração é feita por SSM Session Manager e o IAM segue mínimos privilégios. Os custos estimados e o desligamento completo estão documentados em docs/COSTS.md; a validação e as limitações do Terraform constam em docs/adr/0019-infraestrutura-como-desenho.md.
 
 ## Segurança
 

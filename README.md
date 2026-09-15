@@ -1,7 +1,7 @@
 # DocGrid
 
 [![CI](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/ci.yml)
-[![Imaxe](https://github.com/goncaloe/docgrid/actions/workflows/image.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/image.yml)
+[![Imagem](https://github.com/goncaloe/docgrid/actions/workflows/image.yml/badge.svg)](https://github.com/goncaloe/docgrid/actions/workflows/image.yml)
 
 
 Plataforma de processamento automático de faturas e despesas. Submetes um PDF ou uma foto
@@ -23,7 +23,7 @@ IVA a 6%, 13% e 23%.
 | Backend | Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway |
 | Testes | JUnit 5, AssertJ, Testcontainers |
 | Frontend | React 18, TypeScript, Vite, TanStack Query, Mantine |
-| AWS | S3, SQS, Textract, RDS, EC2 t4g.micro *(ver [ADR 0017](docs/adr/0017-computacion-e-rede-en-aws.md))* |
+| AWS | S3, SQS, Textract, RDS, EC2 t4g.micro *(ver [ADR 0017](docs/adr/0017-computacao-e-rede-na-aws.md))* |
 | Local | Docker Compose com Postgres e LocalStack |
 
 ## Como correr
@@ -45,7 +45,7 @@ curl localhost:8080/actuator/health     # {"status":"UP"}
 Não é preciso configurar nada: sem ficheiro `.env`, tudo arranca com valores por omissão.
 Para mudar portas ou palavra-passe, copia o `.env.example` para `.env`.
 
-## Imaxe no ghcr.io
+## Imagem no ghcr.io
 
 O CI publica a imagem multi-arquitetura (amd64 + arm64) em `ghcr.io/goncaloe/docgrid`, etiquetada com o SHA do commit e também como `latest`. Depois de levantar a infraestrutura local com `npm run infra`, faça o pull e execute:
 
@@ -138,16 +138,16 @@ bucket `docgrid-documents` e a fila `docgrid-document-processing`.
 - Imagem multi-arquitetura publicada em `ghcr.io`.  
 - Terraform do ambiente AWS escrito e validado (nunca aplicado, sem conta AWS).  
 - ADRs 0017-0019 e `docs/COSTS.md`.  
-- Ver o handoff da etapa en `docs/handoffs/`.
+- Ver o handoff da etapa em `docs/handoffs/`.
 
-Para ver os logs en JSON en local: `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (en local o padrón é unha liña lexible con `cid=`, `doc=` e `msg=`).
+Para ver os logs em JSON em local: `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs npm run up` (em local o padrão é uma linha legível com `cid=`, `doc=` e `msg=`).
 
 ## Estado do deploy
 
 Não existe URL pública nem deploy real.  
-Não há conta AWS: a infraestrutura do ambiente está escrita em Terraform (infra/terraform), validada (validate, tflint, checkov, shellcheck, hadolint) mas nunca aplicada – ver docs/adr/0019-infraestrutura-como-deseno.md.  
-O CI (GitHub Actions) testa, analisa, vigia segredos e publica a imagem multi-arquitectura em ghcr.io.  
+Não há conta AWS: a infraestrutura do ambiente está escrita em Terraform (infra/terraform), validada (validate, tflint, checkov, shellcheck, hadolint) mas nunca aplicada – ver docs/adr/0019-infraestrutura-como-desenho.md.  
+O CI (GitHub Actions) testa, analisa, vigia segredos e publica a imagem multi-arquitetura em ghcr.io.  
 Custos estimados e como desligar tudo: docs/COSTS.md.
 Evoluções possíveis (fora do roteiro): integração real com software de contabilidade e o
 **SAF-T** completo — o formato XML que a autoridade tributária portuguesa usa para as
-declarações de IVA — na mesma linha da exportação mensual.
+declarações de IVA — na mesma linha da exportação mensal.
