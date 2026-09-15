@@ -323,14 +323,14 @@ public class DemoInvoiceCatalog {
      */
     private static Map<ExtractedFieldName, FieldGeometry> geometry() {
         Map<ExtractedFieldName, FieldGeometry> geometry = new EnumMap<>(ExtractedFieldName.class);
-        geometry.put(ExtractedFieldName.SUPPLIER_NAME, box(0.06, 0.06, 0.62, 0.11));
-        geometry.put(ExtractedFieldName.SUPPLIER_TAX_ID, box(0.06, 0.13, 0.38, 0.17));
-        geometry.put(ExtractedFieldName.INVOICE_NUMBER, box(0.60, 0.13, 0.94, 0.17));
-        geometry.put(ExtractedFieldName.ISSUE_DATE, box(0.60, 0.19, 0.94, 0.23));
-        geometry.put(ExtractedFieldName.NET_AMOUNT, box(0.60, 0.62, 0.94, 0.66));
-        geometry.put(ExtractedFieldName.VAT_RATE, box(0.34, 0.68, 0.56, 0.72));
-        geometry.put(ExtractedFieldName.VAT_AMOUNT, box(0.60, 0.68, 0.94, 0.72));
-        geometry.put(ExtractedFieldName.TOTAL_AMOUNT, box(0.60, 0.75, 0.94, 0.80));
+        geometry.put(ExtractedFieldName.SUPPLIER_NAME, box(0.07, 0.055, 0.60, 0.085));
+        geometry.put(ExtractedFieldName.SUPPLIER_TAX_ID, box(0.13, 0.100, 0.32, 0.122));
+        geometry.put(ExtractedFieldName.INVOICE_NUMBER, box(0.70, 0.100, 0.93, 0.122));
+        geometry.put(ExtractedFieldName.ISSUE_DATE, box(0.70, 0.132, 0.93, 0.154));
+        geometry.put(ExtractedFieldName.NET_AMOUNT, box(0.72, 0.480, 0.93, 0.502));
+        geometry.put(ExtractedFieldName.VAT_RATE, box(0.38, 0.512, 0.50, 0.534));
+        geometry.put(ExtractedFieldName.VAT_AMOUNT, box(0.72, 0.512, 0.93, 0.534));
+        geometry.put(ExtractedFieldName.TOTAL_AMOUNT, box(0.70, 0.560, 0.93, 0.586));
         return Map.copyOf(geometry);
     }
 
