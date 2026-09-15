@@ -19,7 +19,7 @@ RUN mvn -B -DskipTests package
 RUN java -Djarmode=tools -jar target/docgrid-backend-0.1.0-SNAPSHOT.jar extract --layers --destination extracted
 
 # --- Runtime stage -----------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN adduser -S -u 1001 docgrid
 WORKDIR /app
 
