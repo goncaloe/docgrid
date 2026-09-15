@@ -1,0 +1,5 @@
+# Exemplo de valores — copiar para terraform.tfvars (ignorado pelo git) e preencher.
+image_reference = "ghcr.io/goncaloe/docgrid:latest"
+alert_email     = "alguem@exemplo.pt"
+
+# O resto tem omissões sensatas em variables.tf; só estes dois são obrigatórios.
