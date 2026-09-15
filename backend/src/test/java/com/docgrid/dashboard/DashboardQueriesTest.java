@@ -53,7 +53,7 @@ class DashboardQueriesTest {
     @PersistenceContext
     private EntityManager em;
 
-    private final UUID orgId = UUID.randomUUID();
+    private UUID orgId;
     private final UUID otherOrgId = UUID.randomUUID();
     private static final String SUPPLIER_TAX_ID = "505123452";
     private static final YearMonth FROM = YearMonth.of(2026, 8);
@@ -67,6 +67,7 @@ class DashboardQueriesTest {
 
     @BeforeEach
     void setUp() {
+        orgId = currentUser.currentOrganizationId();
         UUID submitterId = currentUser.currentUserId();
 
         doc1Id = UUID.randomUUID();
@@ -75,14 +76,12 @@ class DashboardQueriesTest {
         doc4Id = UUID.randomUUID();
         doc5Id = UUID.randomUUID();
 
-        // Organizações próprias do teste, ambas criadas aqui. A da identidade demo não
-        // serve: é partilhada com testes que fazem commit (DocumentApprovalServiceTest,
-        // PipelineFlowTest, ...) e estas queries agregam tudo o que estiver na
-        // organização, pelo que os totais exactos dependeriam da ordem de execução.
-        // Da identidade demo só se aproveita o utilizador, para satisfazer a FK
-        // submitted_by.
-        insertOrganization(orgId, "Padaria do Bairro, Lda.", "501442889");
-        insertOrganization(otherOrgId, "Outra Empresa, Lda.", "999999999");
+        // Segunda organização, para o doc4 ter uma FK válida. A da identidade demo
+        // chega para o resto: o DatabaseCleanupListener garante que ela vem vazia.
+        jdbcTemplate.update("""
+                insert into organizations (id, name, tax_id, approval_threshold, created_at, updated_at)
+                values (?, 'Outra Empresa, Lda.', '999999999', 1000.00, now(), now())
+                """, otherOrgId);
 
         // ── 4 documentos na organização corrente ──────────────────────────
         //
@@ -175,13 +174,6 @@ class DashboardQueriesTest {
                 LocalDateTime.of(2026, 8, 21, 11, 30));
 
         em.flush();
-    }
-
-    private void insertOrganization(UUID id, String name, String taxId) {
-        jdbcTemplate.update("""
-                insert into organizations (id, name, tax_id, approval_threshold, created_at, updated_at)
-                values (?, ?, ?, 1000.00, now(), now())
-                """, id, name, taxId);
     }
 
     private void insertDocument(

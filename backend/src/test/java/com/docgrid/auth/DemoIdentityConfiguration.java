@@ -10,11 +10,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.docgrid.support.TestDataSeeder;
+
 /**
  * Dá aos testes de fluxo completo uma organização e um utilizador a quem atribuir os
  * documentos, e um {@link CurrentUserProvider} que os devolve — sem passar por HTTP nem
  * por um token real. Os testes que exercem a API a sério (autorização, papéis) mintam um
  * token verdadeiro em vez de usar esta configuração — ver {@code JwtTestSupport}.
+ *
+ * <p>A identidade é semeada no arranque do contexto e outra vez sempre que a limpeza
+ * entre classes a apaga: daí o {@link TestDataSeeder}. Sem isso o provider ficava a
+ * apontar para uma organização truncada e a classe seguinte rebentava nas chaves
+ * estrangeiras.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class DemoIdentityConfiguration {
@@ -27,7 +34,7 @@ public class DemoIdentityConfiguration {
         return new FixedCurrentUserProvider(organizations, users);
     }
 
-    static class FixedCurrentUserProvider implements ApplicationRunner, CurrentUserProvider {
+    static class FixedCurrentUserProvider implements ApplicationRunner, CurrentUserProvider, TestDataSeeder {
 
         private final OrganizationRepository organizations;
         private final UserRepository users;
@@ -43,12 +50,19 @@ public class DemoIdentityConfiguration {
         @Override
         @Transactional
         public void run(ApplicationArguments args) {
-            User demo = users.findByEmailIgnoreCase(DEMO_EMAIL).orElseGet(this::seed);
+            seed();
+        }
+
+        /** Idempotente: procura a identidade e só a cria se a limpeza a tiver levado. */
+        @Override
+        @Transactional
+        public void seed() {
+            User demo = users.findByEmailIgnoreCase(DEMO_EMAIL).orElseGet(this::create);
             this.organizationId = demo.getOrganizationId();
             this.userId = demo.getId();
         }
 
-        private User seed() {
+        private User create() {
             Organization organization = organizations.save(
                     new Organization("DocGrid Demonstração, Lda.", "501442889", new BigDecimal("1000.00")));
             return users.save(new User(
